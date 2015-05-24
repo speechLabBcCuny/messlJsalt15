@@ -1,4 +1,4 @@
-function Y = stub_messlMcIld2(X, N, Ncov, fail, TDOA, fs)
+function Y = stub_messlMcIld2(X, N, Ncov, fail, TDOA, fs, varargin)
 
 % Multichannel MESSL mask applied to MVDR output initialized from ILD
 % between MVDR output and mic 2 (rear-facing)
@@ -26,9 +26,7 @@ else
 end
 
 % MESSL for mask
-messlOpts = {'GarbageSrc', 1, 'fixIPriors', 1, 'mrfCompatExpSched', [0 0 0 0 0 0 0 0 .1], ...
-    'mrfCompatFile', '~mandelm/data8/messlData/ibmNeighborCountsSimple.mat', ...
-    'maskInit', maskInit};
+messlOpts = [{'GarbageSrc', 1, 'fixIPriors', 1, 'maskInit', maskInit} varargin];
 [p_lr_iwt params hardMasks] = messlMultichannel(X(2:end-1,:,~fail), tau, 1, messlOpts{:});
 
 z = zeros(1, size(X,2));
