@@ -11,5 +11,9 @@
 # e.g.
 #   srun -n 2 ./srunMatlab.sh "fprintf('\$SLURM_PROCID of \$SLURM_NTASKS\n')"
 
+MAT_DIR=$HOME/code/matlab
+CUR_DIR=`pwd`
+CHIME_CODE_DIR=/data/corpora/chime3/CHiME3/tools/
+
 echo "$0 \"$@\""
-matlab -nodisplay -r "try; $@; catch ex; disp(getReport(ex)); end; quit"
+matlab -nodisplay -r "try; cd $MAT_DIR ; startup; cd $CUR_DIR ; addpath(genpath('$CHIME_CODE_DIR')); $@; catch ex; disp(getReport(ex)); end; quit"
