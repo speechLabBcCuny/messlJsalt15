@@ -2,11 +2,7 @@ function Y = stub_messlMcTdoa(X, N, Ncov, fail, TDOA, fs)
 
 % Multichannel MESSL mask applied to MVDR output initialized from TDOA's
 
-c    = 340;   % speed of sound in air [M/s]
-d    = 0.35;  % slightly more than the acoustic distance between microphones [M]
-nTau = 31;    % number of tau samples to use
-maxItd = 2 * fs * d / c;  % maximum ITD [samples]
-tau = linspace(-maxItd, maxItd, nTau);
+tau = tauGrid(0.35, fs, 31);
 
 % MESSL for mask
 messlOpts = {'GarbageSrc', 1, 'fixIPriors', 1, 'mrfCompatExpSched', [0 0 0 0 0 0 0 0 .1], ...

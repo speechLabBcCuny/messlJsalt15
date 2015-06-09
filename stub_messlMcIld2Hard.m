@@ -15,12 +15,7 @@ threshold_db = 12;
 maxSup_db = -40;
 
 maxSup = 10^(maxSup_db/20);
-
-c    = 340;   % speed of sound in air [M/s]
-d    = 0.35;  % slightly more than the acoustic distance between microphones [M]
-nTau = 31;    % number of tau samples to use
-maxItd = 2 * fs * d / c;  % maximum ITD [samples]
-tau = linspace(-maxItd, maxItd, nTau);
+tau = tauGrid(0.35, fs, 31);
 
 % MVDR for linear beamforming
 mvdr = stub_baselineMvdr(X, N, Ncov, fail, TDOA, fs);
