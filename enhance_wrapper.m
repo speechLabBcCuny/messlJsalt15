@@ -5,16 +5,15 @@ function enhance_wrapper(stubFn, inDir, outDir, part, overwrite, ignoreErrors)
 % For compatibility with CHiME3 wrapper, takes as argument an enhancement
 % stub function with the following interface:
 %
-% Y = stubFn(X, N, Ncov, fail, TDOA_s, sr);
+% Y = stubFn(X, fail, sr);
 %
-% BUT note that N, Ncov, and TDOA_s will all be empty. Y is the estimated
-% single channel spectrogram of the speech, X is the multi-channel
-% spectrogram of the noisy speech, N is the multi-channel spectrogram of up
-% to 5 seconds of noise preceeding the speech, Ncov is the computed
-% frequency-dependent noise covariance matrix, fail is a binary vector
-% indicating whether each mic has failed, TDOA is a matrix of TDOA
-% estimates for each channel for each frame measured in seconds, and sr is
-% the sampling rate.
+% Y is the estimated single channel spectrogram of the speech, X is the
+% multi-channel spectrogram of the noisy speech, N is the multi-channel
+% spectrogram of up to 5 seconds of noise preceeding the speech, Ncov is
+% the computed frequency-dependent noise covariance matrix, fail is a
+% binary vector indicating whether each mic has failed, TDOA is a matrix of
+% TDOA estimates for each channel for each frame measured in seconds, and
+% sr is the sampling rate.
 %
 % Data will be written in a standard directory structure rooted at outDir.
 % 
@@ -59,14 +58,9 @@ for f = part(1):part(2):length(inFiles)
     X = stft_multi(x.',wlen);
     [nbin,nfram,~] = size(X);
 
-    % Setup dummy inputs
-    N = [];
-    Ncov = [];
-    TDOA = [];
-    
     %%% Call the stub
     try
-        Y = stubFn(X, N, Ncov, fail, TDOA, fs);
+        Y = stubFn(X, fail, fs);
     catch ex
         if ignoreErrors
             disp(getReport(ex))
@@ -76,9 +70,9 @@ for f = part(1):part(2):length(inFiles)
         end
     end
     
-    % Inverse STFT and write WAV file
-    y = istft_multi(Y,nsampl).';
-    y = y * 0.999/max(abs(y));
+    % Inverse STFT and write WAV file with one source per channel
+    y = istft_multi(Y, nsampl).';
+    y = y * 0.999/max(abs(y(:)));
     ensureDirExists(outFile);
     wavwrite(y, fs, outFile);
 end
