@@ -10,11 +10,10 @@ if ~exist('useHardMask', 'var') || isempty(useHardMask), useHardMask = true; end
 
 % Check that mrfHardCompatExp is not zero
 ind = find(strcmp(varargin, 'mrfHardCompatExp'));
-if isempty(ind) || (varargin{ind+1} == 0)
-    error('Must set "mrfHardCompatExp" to nonzero value for stub_messlMcIld2Hard')
+if useHardMask && (isempty(ind) || (varargin{ind+1} == 0))
+    error('Must set "mrfHardCompatExp" to nonzero value with useHardMask')
 end
 
-threshold_db = 12;
 maxSup_db = -40;
 
 maxSup = 10^(maxSup_db/20);
