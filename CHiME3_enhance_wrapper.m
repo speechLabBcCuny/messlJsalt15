@@ -50,7 +50,7 @@ wlen = 1024; % STFT window length
 cmin=6400; % minimum context duration (400 ms)
 cmax=12800; % maximum context duration (800 ms)
 
-sets={'tr05' 'dt05'};
+sets={'tr05' 'dt05' 'et05'};
 modes={'real' 'simu'};
 for set_ind=1:length(sets),
     set=sets{set_ind};
