@@ -5,7 +5,7 @@ function enhance_wrapper(stubFn, inDir, outDir, part, overwrite, ignoreErrors)
 % For compatibility with CHiME3 wrapper, takes as argument an enhancement
 % stub function with the following interface:
 %
-% Y = stubFn(X, fail, sr);
+% [Y mask] = stubFn(X, fail, sr);
 %
 % Y is the estimated single channel spectrogram of the speech, X is the
 % multi-channel spectrogram of the noisy speech, N is the multi-channel
@@ -36,13 +36,14 @@ inFiles = findFiles(inDir, '.*.wav');
 
 for f = part(1):part(2):length(inFiles)
     inFile = fullfile(inDir, inFiles{f});
-    outFile = fullfile(outDir, inFiles{f});
+    outWavFile = fullfile(outDir, 'wav', inFiles{f});
+    outMaskFile = fullfile(outDir, 'mask', strrep(inFiles{f}, '.wav', '.mat'));
     
-    if exist(outFile, 'file') && ~overwrite
-        fprintf('%d: Skipping %s\n', f, outFile);
+    if exist(outWavFile, 'file') && ~overwrite
+        fprintf('%d: Skipping %s\n', f, outWavFile);
         continue
     else
-        fprintf('%d: %s\n', f, outFile);
+        fprintf('%d: %s\n', f, outWavFile);
     end
     
     % Read file
@@ -60,11 +61,12 @@ for f = part(1):part(2):length(inFiles)
 
     %%% Call the stub
     try
-        Y = stubFn(X, fail, fs);
+        [Y mask] = stubFn(X, fail, fs);
     catch ex
         if ignoreErrors
             disp(getReport(ex))
-            Y = ones(nbin, nfram);
+            Y = X;
+            mask = ones(nbin, nfram);
         else
             rethrow(ex)
         end
@@ -73,6 +75,8 @@ for f = part(1):part(2):length(inFiles)
     % Inverse STFT and write WAV file with one source per channel
     y = istft_multi(Y, nsampl).';
     y = y * 0.999/max(abs(y(:)));
-    ensureDirExists(outFile);
-    wavwrite(y, fs, outFile);
+    ensureDirExists(outWavFile);
+    wavwrite(y, fs, outWavFile);
+    ensureDirExists(outMaskFile);
+    save(outMaskFile, 'mask', 'fs', 'nbin', 'nfram', 'nsampl', 'fail');
 end

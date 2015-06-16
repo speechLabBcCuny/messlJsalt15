@@ -1,4 +1,4 @@
-function Y = stubI_messlMc(X, fail, fs, I, allPairs, d, useHardMask, varargin)
+function [Y mask Xp] = stubI_messlMc(X, fail, fs, I, allPairs, d, useHardMask, varargin)
 
 % Multichannel MESSL mask with simple beamforming initialized from cross
 % correlations between mics.
