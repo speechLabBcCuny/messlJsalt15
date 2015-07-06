@@ -1,11 +1,11 @@
-function enhance_wrapper(stubFn, inDir, outDir, part, overwrite, ignoreErrors)
+function enhance_wrapper(stubFn, inDir, outDir, part, overwrite, ignoreErrors, filePerChan)
 
 % Wrapper like for CHiME3, but working with arbitrary multichannel wavsxs
 %
 % For compatibility with CHiME3 wrapper, takes as argument an enhancement
 % stub function with the following interface:
 %
-% [Y mask] = stubFn(X, fail, sr);
+% [Y mask] = stubFn(X, fail, sr, fileName);
 %
 % Y is the estimated single channel spectrogram of the speech, X is the
 % multi-channel spectrogram of the noisy speech, N is the multi-channel
@@ -23,6 +23,7 @@ function enhance_wrapper(stubFn, inDir, outDir, part, overwrite, ignoreErrors)
 if ~exist('overwrite', 'var') || isempty(overwrite), overwrite = false; end
 if ~exist('part', 'var') || isempty(part), part = [1 1]; end
 if ~exist('ignoreErrors', 'var') || isempty(ignoreErrors), ignoreErrors = false; end
+if ~exist('filePerChan', 'var') || isempty(filePerChan), filePerChan = false; end
 
 % Define hyper-parameters
 pow_thresh=-20; % threshold in dB below which a microphone is considered to fail
@@ -32,8 +33,12 @@ if strcmp(inDir, outDir)
     error('Not overwriting input: %s == %s', inDir, outDir);
 end
 
-inFiles = findFiles(inDir, '.*.wav');
-
+if filePerChan
+    inFiles = findFiles(inDir, '(real|simu).*\.CH1\.wav');
+else
+    inFiles = findFiles(inDir, '.*.wav');
+end
+    
 for f = part(1):part(2):length(inFiles)
     inFile = fullfile(inDir, inFiles{f});
     outWavFile = fullfile(outDir, 'wav', inFiles{f});
@@ -47,7 +52,20 @@ for f = part(1):part(2):length(inFiles)
     end
     
     % Read file
-    [x fs] = wavread(inFile);
+    if filePerChan
+        [inD inF] = fileparts(inFile);
+        glob = strrep(inF, 'CH1', 'CH[1-9]');
+        [~,chanFiles] = findFiles(inD, glob);
+
+        [sz fs] = wavread(chanFiles{1}, 'size');
+        x = zeros(sz(1), length(chanFiles));
+        for i = 1:length(chanFiles)
+            [x(:,i) fsi] = wavread(chanFiles{i});
+            assert(fsi == fs);
+        end
+    else
+        [x fs] = wavread(inFile);
+    end
     nsampl = size(x,1);
 
     % Determine if any mics have failed
@@ -61,7 +79,7 @@ for f = part(1):part(2):length(inFiles)
 
     %%% Call the stub
     try
-        [Y mask] = stubFn(X, fail, fs);
+        [Y mask] = stubFn(X, fail, fs, inFiles{f});
     catch ex
         if ignoreErrors
             disp(getReport(ex))
