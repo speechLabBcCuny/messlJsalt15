@@ -57,7 +57,7 @@ Xp = zeros(size(X,1), size(X,2), size(mask,3));
 for s = 1:size(mask,3)
     signal = squeeze(sum(sum(bsxfun(@times, P,   mask(:,:,s)), 1), 2));
     noise  = squeeze(sum(sum(bsxfun(@times, P, 1-mask(:,:,s)), 1), 2));
-    snr = signal ./ noise;
+    snr = signal ./ noise - 1e9*fail';
 
     [~,bestChan] = max(snr);
     Xp(:,:,s) = X(:,:,bestChan);

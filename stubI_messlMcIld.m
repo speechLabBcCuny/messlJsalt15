@@ -24,19 +24,23 @@ maxSup = 10^(maxSup_db/20);
 tau = tauGrid(d, fs, 31);
 fprintf('Max ITD: %g samples\n', tau(end));
 
-% Compute ILD initialization
+% Load reference MVDR separation from file
 refFile = fullfile(refDir, strrep(inFile, '.CH1', ''));
-if ~fail(2) && exist(refFile, 'file')
+if exist(refFile, 'file')
     [mvdr fsm] = wavread(refFile);
     assert(fsm == fs);
     wlen = (size(X,1)-1)*2;
     M = stft_multi(mvdr.', wlen);
+else
+    fprintf('\b NOT using ILD initialization\n');
+    M = [];
+end
 
+if ~fail(2)
     % Compute ILD between MVDR output and mic 2 (rear-facing)
     maskInit = maxSup + (1-2*maxSup)*(db(M(2:end-1,:) ./ X(2:end-1,:,2)) > threshold_db);
     maskInit = cat(3, maskInit, 1 - maskInit);
 else
-    fprintf('\b NOT using ILD initialization\n');
     maskInit = [];
 end
 
@@ -68,6 +72,21 @@ end
 z = zeros([1 size(X,2) size(mask,3)]);
 mask = cat(1, z, mask, z);
 mask = maxSup + (1 - maxSup) * mask;
+
+if isempty(M)
+    % Figure out what to apply the mask to
+    % Stupidest way: pick the channel with best estimated SNR
+    P = magSq(X);
+    M = zeros(size(X,1), size(X,2), size(mask,3));
+    for s = 1:size(mask,3)
+        signal = squeeze(sum(sum(bsxfun(@times, P,   mask(:,:,s)), 1), 2));
+        noise  = squeeze(sum(sum(bsxfun(@times, P, 1-mask(:,:,s)), 1), 2));
+        snr = signal ./ noise - 1e9*fail';
+        
+        [~,bestChan] = max(snr);
+        M(:,:,s) = X(:,:,bestChan);
+    end
+end
 
 % Output spectrogram(s)
 Y = M .* mask;
