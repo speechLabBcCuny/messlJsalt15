@@ -1,4 +1,4 @@
-function enhance_wrapper(stubFn, inDir, outDir, part, overwrite, ignoreErrors, filePerChan)
+function enhance_wrapper(stubFn, inDir, outDir, part, overwrite, ignoreErrors, filePerChan, inFiles)
 
 % Wrapper like for CHiME3, but working with arbitrary multichannel wavsxs
 %
@@ -24,6 +24,7 @@ if ~exist('overwrite', 'var') || isempty(overwrite), overwrite = false; end
 if ~exist('part', 'var') || isempty(part), part = [1 1]; end
 if ~exist('ignoreErrors', 'var') || isempty(ignoreErrors), ignoreErrors = false; end
 if ~exist('filePerChan', 'var') || isempty(filePerChan), filePerChan = false; end
+if ~exist('inFiles', 'var'), inFiles = []; end
 
 % Define hyper-parameters
 pow_thresh=-20; % threshold in dB below which a microphone is considered to fail
@@ -33,16 +34,19 @@ if strcmp(inDir, outDir)
     error('Not overwriting input: %s == %s', inDir, outDir);
 end
 
+if isempty(inFiles)
 if filePerChan
     inFiles = findFiles(inDir, '(real|simu).*\.CH1\.wav');
 else
     inFiles = findFiles(inDir, '.*.wav');
 end
+end
     
 for f = part(1):part(2):length(inFiles)
     inFile = fullfile(inDir, inFiles{f});
-    outWavFile = fullfile(outDir, 'wav', inFiles{f});
-    outMaskFile = fullfile(outDir, 'mask', strrep(inFiles{f}, '.wav', '.mat'));
+    inFileNoCh = strrep(inFiles{f}, '.CH1', '');
+    outWavFile = fullfile(outDir, 'wav', inFileNoCh);
+    outMaskFile = fullfile(outDir, 'mask', strrep(inFileNoCh, '.wav', '.mat'));
     
     if exist(outWavFile, 'file') && ~overwrite
         fprintf('%d: Skipping %s\n', f, outWavFile);
@@ -54,7 +58,7 @@ for f = part(1):part(2):length(inFiles)
     % Read file
     if filePerChan
         [inD inF] = fileparts(inFile);
-        glob = strrep(inF, 'CH1', 'CH[1-9]');
+        glob = strrep(inF, '.CH1', '.CH[1-9]');
         [~,chanFiles] = findFiles(inD, glob);
 
         [sz fs] = wavread(chanFiles{1}, 'size');
