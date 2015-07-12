@@ -35,13 +35,16 @@ if strcmp(inDir, outDir)
 end
 
 if isempty(inFiles)
-if filePerChan
-    inFiles = findFiles(inDir, '(real|simu).*\.CH1\.wav');
-else
-    inFiles = findFiles(inDir, '.*.wav');
-end
-end
+    if filePerChan
+        inFiles = findFiles(inDir, '(real|simu).*\.CH1\.wav');
+    else
+        inFiles = findFiles(inDir, '.*.wav');
+    end
     
+    % Shuffle file list reproducibly
+    inFiles = inFiles(runWithRandomSeed(22, @randperm, length(inFiles)));
+end
+
 for f = part(1):part(2):length(inFiles)
     inFile = fullfile(inDir, inFiles{f});
     inFileNoCh = strrep(inFiles{f}, '.CH1', '');
