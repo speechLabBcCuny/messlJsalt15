@@ -17,7 +17,8 @@ end
 
 refDir = '/data/corpora/chime3/CHiME3/data/audio/16kHz/enhancedLocal/beamformit_1s_sc_ch1_3-6/';
 
-threshold_db = 6;
+thresholdQuantile = 0.7;
+thresholdOffset_db = 0;
 maxSup_db = -40;
 
 maxSup = 10^(maxSup_db/20);
@@ -38,7 +39,9 @@ end
 
 if ~fail(2)
     % Compute ILD between MVDR output and mic 2 (rear-facing)
-    maskInit = maxSup + (1-2*maxSup)*(db(M(2:end-1,:) ./ X(2:end-1,:,2)) > threshold_db);
+    ild = db(M(2:end-1,:) ./ X(2:end-1,:,2));
+    maskInit = ild > (quantile(ild(:), thresholdQuantile) - thresholdOffset_db);
+    maskInit = maxSup + (1-2*maxSup)*maskInit;
     maskInit = cat(3, maskInit, 1 - maskInit);
 else
     maskInit = [];
