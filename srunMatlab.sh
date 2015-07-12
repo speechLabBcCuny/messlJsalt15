@@ -16,4 +16,4 @@ CUR_DIR=`pwd`
 CHIME_CODE_DIR=/data/corpora/chime3/CHiME3/tools/
 
 echo "$0 \"$@\""
-matlab -nodisplay -r "try; cd $MAT_DIR ; startup; cd $CUR_DIR ; addpath(genpath('$CHIME_CODE_DIR')); $@; catch ex; disp(getReport(ex)); end; quit"
+matlab -singleCompThread -nodisplay -r "try; cd $MAT_DIR ; startup; cd $CUR_DIR ; addpath(genpath('$CHIME_CODE_DIR')); $@; catch ex; disp(getReport(ex)); end; quit"
