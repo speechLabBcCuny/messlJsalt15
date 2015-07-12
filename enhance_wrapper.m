@@ -45,6 +45,10 @@ if isempty(inFiles)
     inFiles = inFiles(runWithRandomSeed(22, @randperm, length(inFiles)));
 end
 
+if filePerChan
+    lastNChan = [];
+end
+
 for f = part(1):part(2):length(inFiles)
     inFile = fullfile(inDir, inFiles{f});
     inFileNoCh = strrep(inFiles{f}, '.CH1', '');
@@ -61,9 +65,16 @@ for f = part(1):part(2):length(inFiles)
     % Read file
     if filePerChan
         [inD inF] = fileparts(inFile);
+        assert(reMatch(inF, '\.CH1'));
         glob = strrep(inF, '.CH1', '.CH[1-9]');
-        [~,chanFiles] = findFiles(inD, glob);
+        [chanFilesShort,chanFiles] = findFiles(inD, glob);
 
+        if ~isempty(lastNChan) && (length(chanFiles) ~= lastNChan)
+            warning('Messl:Chime3:NChanChanged', 'Number of channels changed from %d to %d: %s', ...
+                lastNChan, length(chanFiles), join(chanFilesShort , ', '));
+        end
+        lastNChan = length(chanFiles);
+        
         [sz fs] = wavread(chanFiles{1}, 'size');
         x = zeros(sz(1), length(chanFiles));
         for i = 1:length(chanFiles)
