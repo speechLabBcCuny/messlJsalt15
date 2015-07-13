@@ -1,4 +1,4 @@
-function [Y mask Xp] = stubI_messlMc(X, fail, fs, inFile, I, allPairs, d, useHardMask, varargin)
+function [Y data mask Xp] = stubI_messlMc(X, fail, fs, inFile, I, allPairs, d, useHardMask, varargin)
 
 % Multichannel MESSL mask with simple beamforming initialized from cross
 % correlations between mics.
@@ -62,6 +62,9 @@ for s = 1:size(mask,3)
     [~,bestChan] = max(snr);
     Xp(:,:,s) = X(:,:,bestChan);
 end
+
+data.mask = single(mask);
+data.params = params;
 
 % Output spectrogram(s)
 Y = Xp .* mask;

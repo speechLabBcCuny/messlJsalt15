@@ -5,7 +5,7 @@ function enhance_wrapper(stubFn, inDir, outDir, part, overwrite, ignoreErrors, f
 % For compatibility with CHiME3 wrapper, takes as argument an enhancement
 % stub function with the following interface:
 %
-% [Y mask] = stubFn(X, fail, sr, fileName);
+% [Y data] = stubFn(X, fail, sr, fileName);
 %
 % Y is the estimated single channel spectrogram of the speech, X is the
 % multi-channel spectrogram of the noisy speech, N is the multi-channel
@@ -16,6 +16,8 @@ function enhance_wrapper(stubFn, inDir, outDir, part, overwrite, ignoreErrors, f
 % sr is the sampling rate.
 %
 % Data will be written in a standard directory structure rooted at outDir.
+% Output wav files in the wav/ subdirectory and data as mat files in the
+% data/ subdirectory.
 % 
 % Part is a tuple [n N] meaning process the nth of N sets of utterances to
 % allow for easy parallelization across matlab sessions.
@@ -53,7 +55,7 @@ for f = part(1):part(2):length(inFiles)
     inFile = fullfile(inDir, inFiles{f});
     inFileNoCh = strrep(inFiles{f}, '.CH1', '');
     outWavFile = fullfile(outDir, 'wav', inFileNoCh);
-    outMaskFile = fullfile(outDir, 'mask', strrep(inFileNoCh, '.wav', '.mat'));
+    outMaskFile = fullfile(outDir, 'data', strrep(inFileNoCh, '.wav', '.mat'));
     
     if exist(outWavFile, 'file') && ~overwrite
         fprintf('%d: Skipping %s\n', f, outWavFile);
@@ -97,16 +99,17 @@ for f = part(1):part(2):length(inFiles)
 
     %%% Call the stub
     try
-        [Y mask] = stubFn(X, fail, fs, inFiles{f});
+        [Y data] = stubFn(X, fail, fs, inFiles{f});
     catch ex
         if ignoreErrors
             disp(getReport(ex))
             Y = X;
-            mask = ones(nbin, nfram);
+            data = [];
         else
             rethrow(ex)
         end
     end
+    data = structCast(data, @isnumeric, @single);
     
     % Inverse STFT and write WAV file with one source per channel
     y = istft_multi(Y, nsampl).';
@@ -114,5 +117,5 @@ for f = part(1):part(2):length(inFiles)
     ensureDirExists(outWavFile);
     wavwrite(y, fs, outWavFile);
     ensureDirExists(outMaskFile);
-    save(outMaskFile, 'mask', 'fs', 'nbin', 'nfram', 'nsampl', 'fail');
+    save(outMaskFile, 'data', 'fs', 'nbin', 'nfram', 'nsampl', 'fail');
 end

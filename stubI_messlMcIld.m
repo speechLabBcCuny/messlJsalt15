@@ -1,4 +1,4 @@
-function [Y mask M] = stubI_messlMcIld(X, fail, fs, inFile, I, allPairs, d, useHardMask, varargin)
+function [Y data mask M] = stubI_messlMcIld(X, fail, fs, inFile, I, allPairs, d, useHardMask, varargin)
 
 % Multichannel MESSL mask with simple beamforming initialized from ILD
 % between reference file and mic2 or if mic2 has failed, then cross
@@ -90,6 +90,9 @@ if isempty(M)
         M(:,:,s) = X(:,:,bestChan);
     end
 end
+
+data.mask = single(mask);
+data.params = params;
 
 % Output spectrogram(s)
 Y = M .* mask;
