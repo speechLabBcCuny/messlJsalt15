@@ -1,4 +1,4 @@
-function [Y data mask Xp] = stubI_messlMc(X, fail, fs, inFile, I, allPairs, d, useHardMask, varargin)
+function [Y data mask Xp] = stubI_messlMc(X, fail, fs, inFile, I, allPairs, d, useHardMask, beamformer, varargin)
 
 % Multichannel MESSL mask with simple beamforming initialized from cross
 % correlations between mics.
@@ -7,6 +7,7 @@ if ~exist('I', 'var') || isempty(I), I = 1; end
 if ~exist('allPairs', 'var') || isempty(allPairs), allPairs = true; end
 if ~exist('d', 'var') || isempty(d), d = 0.35; end
 if ~exist('useHardMask', 'var') || isempty(useHardMask), useHardMask = true; end
+if ~exist('beamformer', 'var') || isempty(beamformer), beamformer = 'bestMic'; end
 
 % Check that mrfHardCompatExp is not zero
 ind = find(strcmp(varargin, 'mrfHardCompatExp'));
@@ -50,21 +51,34 @@ z = zeros([1 size(X,2) size(mask,3)]);
 mask = cat(1, z, mask, z);
 mask = maxSup + (1 - maxSup) * mask;
 
-% Figure out what to apply the mask to
-% Stupidest way: pick the channel with best estimated SNR
-P = magSq(X);
-Xp = zeros(size(X,1), size(X,2), size(mask,3));
-for s = 1:size(mask,3)
-    signal = squeeze(sum(sum(bsxfun(@times, P,   mask(:,:,s)), 1), 2));
-    noise  = squeeze(sum(sum(bsxfun(@times, P, 1-mask(:,:,s)), 1), 2));
-    snr = signal ./ noise - 1e9*fail';
-
-    [~,bestChan] = max(snr);
-    Xp(:,:,s) = X(:,:,bestChan);
-end
-
 data.mask = single(mask);
 data.params = params;
+
+switch beamformer
+    case 'bestMic'
+        % Figure out what to apply the mask to
+        % Stupidest way: pick the channel with best estimated SNR
+        P = magSq(X);
+        Xp = zeros(size(X,1), size(X,2), size(mask,3));
+        for s = 1:size(mask,3)
+            signal = squeeze(sum(sum(bsxfun(@times, P,   mask(:,:,s)), 1), 2));
+            noise  = squeeze(sum(sum(bsxfun(@times, P, 1-mask(:,:,s)), 1), 2));
+            snr = signal ./ noise - 1e9*fail';
+            
+            [~,bestChan] = max(snr);
+            Xp(:,:,s) = X(:,:,bestChan);
+        end
+    case 'mvdr'
+        mvdrMask = mungeMaskForMvdr(mask);
+        Xp = zeros(size(X,1), size(X,2), size(mask,3));
+        for s = 1:size(mask,3)-1
+            Xp(:,:,s) = maskDrivenMvdr(X, mvdrMask(:,:,s), params.perMicTdoa(:,s), fail, fs);
+        end
+        Xp(:,:,end) = X(:,:,1);  % Garbage source
+        data.mvdrMask = single(mvdrMask);
+    otherwise
+        error('Unknown beamformer: %s', beamformer)
+end
 
 % Output spectrogram(s)
 Y = Xp .* mask;
