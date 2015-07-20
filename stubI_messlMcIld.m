@@ -1,4 +1,5 @@
-function [Y data mask M] = stubI_messlMcIld(X, fail, fs, inFile, I, allPairs, d, useHardMask, varargin)
+function [Y data mask M] = stubI_messlMcIld(X, fail, fs, inFile, I, ...
+                                            allPairs, d, useHardMask, refDir, varargin)
 
 % Multichannel MESSL mask with simple beamforming initialized from ILD
 % between reference file and mic2 or if mic2 has failed, then cross
@@ -8,14 +9,16 @@ if ~exist('I', 'var') || isempty(I), I = 1; end
 if ~exist('allPairs', 'var') || isempty(allPairs), allPairs = true; end
 if ~exist('d', 'var') || isempty(d), d = 0.35; end
 if ~exist('useHardMask', 'var') || isempty(useHardMask), useHardMask = true; end
+if ~exist('refDir', 'var') || isempty(refDir), 
+    refDir = ['/data/corpora/chime3/CHiME3/data/audio/16kHz/' ...
+              'enhancedLocal/beamformit_1s_sc_ch1_3-6/'];
+end
 
 % Check that mrfHardCompatExp is not zero
 ind = find(strcmp(varargin, 'mrfHardCompatExp'));
 if useHardMask && (isempty(ind) || (varargin{ind+1} == 0))
     error('Must set "mrfHardCompatExp" to nonzero value with useHardMask')
 end
-
-refDir = '/data/corpora/chime3/CHiME3/data/audio/16kHz/enhancedLocal/beamformit_1s_sc_ch1_3-6/';
 
 thresholdQuantile = 0.7;
 thresholdOffset_db = 0;
