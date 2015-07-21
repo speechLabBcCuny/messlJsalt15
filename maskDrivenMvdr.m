@@ -33,15 +33,17 @@ tdoa_s = tdoa_s(~fail);
 % Estimate noise covariance
 Ncov = zeros(C, C, F);
 for f = 1:F
-    Ncov(:,:,f) = X(:,:,f) * bsxfun(@times, X(:,:,f), 1-M(f,:))';
+    %Ncov(:,:,f) = X(:,:,f) * bsxfun(@times, X(:,:,f), 1-M(f,:))';
+    Tcov = covw(X(:,:,f)', 1-M(f,:)');
+    Ncov(:,:,f) = 0.5 * (Tcov + Tcov');  % Ensure Hermitian symmetry
 end
 
 % MVDR beamforming
 Xa = squeeze(mean(abs(X).^2,2));
 Y  = zeros(F,T);
 for f = 1:F,
-    Df  = sqrt(1/C) * exp(-2*1i*pi*(f-1)/wlen*fs*tdoa_s); % steering vector
+    Df  = sqrt(1/C) * exp(-2*1i*pi*(f-1)/wlen*fs*tdoa_s);  % steering vector
     Rt  = Ncov(:,:,f) + regul * diag(Xa(:,f));            % regularized noise covariance
     DR  = Df'/Rt;
-    Y(f,:) = (DR * X(:,:,f)) / (DR * Df);
+    Y(f,:) = (DR * X(:,:,f)) / real(DR * Df);
 end
