@@ -1,13 +1,12 @@
-function Y = maskDrivenMvdr(X, M, tdoa_s, fail, fs)
+function Y = maskDrivenMvdr(X, M, tdoa, fail)
 
 % Perform MVDR beamforming using a mask and a look direction
 %
 % Inputs
 %   X      FxTxC array of complex spectrograms for each mic
 %   M      FxT matrix of a mask for all channels where 1 is target, 0 not
-%   tdoa_s Cx1 vector of time delays at each microphone measured in seconds
+%   tdoa   Cx1 vector of time delays at each microphone measured in samples
 %   fail   Cx1 binary vector indicating whether each mic has failed
-%   fs     sampling rate
 %
 % Outputs
 %   Y      FxT matrix of a complex spectrogram of the MVDR output
@@ -28,7 +27,7 @@ wlen = 2*(F-1);
 
 X = permute(X, [3 2 1]);  % Now it is CxTxF
 X = X(~fail,:,:);
-tdoa_s = tdoa_s(~fail);
+tdoa = tdoa(~fail);
 
 % Estimate noise covariance
 Ncov = zeros(C, C, F);
@@ -42,8 +41,11 @@ end
 Xa = squeeze(mean(abs(X).^2,2));
 Y  = zeros(F,T);
 for f = 1:F,
-    Df  = sqrt(1/C) * exp(-2*1i*pi*(f-1)/wlen*fs*tdoa_s);  % steering vector
+    Df  = sqrt(1/C) * exp(2*1i*pi*(f-1)/wlen*tdoa);  % steering vector
+    Dfs(:,f) = Df;
     Rt  = Ncov(:,:,f) + regul * diag(Xa(:,f));            % regularized noise covariance
     DR  = Df'/Rt;
     Y(f,:) = (DR * X(:,:,f)) / real(DR * Df);
 end
+
+% plot(angle(Dfs)')
