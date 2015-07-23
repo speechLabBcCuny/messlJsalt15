@@ -36,9 +36,9 @@ else
     [~,perPair] = max(tdoas,[],1);
     perPair = taug(squeeze(perPair).');
 end
-[perMic estPerPair] = perMicTdoaLs(perPair, channelPairs,[],1);
+[perMic,estPerPair,~,failed] = perMicTdoaLs(perPair, channelPairs,[],1);
 
-[~,~,index] = kmedoids(estPerPair,K);
+[~,~,index] = kmedoids(estPerPair(:,~failed),K);
 
 Ybf = zeros(size(Y,1),size(Y,2),K);
 Y = permute(Y, [3 2 1]);  % Chan x Time x Freq
