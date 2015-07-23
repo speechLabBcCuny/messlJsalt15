@@ -1,4 +1,4 @@
-function [Ybfn Yn] = beamSpaceProject(Y, K, fs, d_m, useKernXcorr)
+function [Ybfn Yn tdoas itds] = beamSpaceProject(Y, K, fs, d_m, useKernXcorr)
 
 % Find K directions of arrival of frames of Y, project Y onto delay-and-sum
 % beamformers in those directions.
@@ -20,6 +20,7 @@ if useKernXcorr
     for cc = 1:size(channelPairs,1)
         normXCT = normKernXcorr(Y(:,:,channelPairs(cc,:)), taug, wlen, kern);
         [normXCm(:,:,cc) normXCc(:,:,cc)] = max(normXCT,[],3);
+        %subplots({normXCm(:,:,cc), taug(normXCc(:,:,cc))}, [-1 1])
     end
     highCoh = find(mean(normXCm > 0.4, 3) > 0.75);
     if length(highCoh) > maxPts
@@ -39,6 +40,8 @@ end
 [perMic,estPerPair,~,failed] = perMicTdoaLs(perPair, channelPairs,[],1);
 
 [~,~,index] = kmedoids(estPerPair(:,~failed),K);
+tdoas = perMic(:,index(1:K));
+itds  = estPerPair(:,index(1:K));
 
 Ybf = zeros(size(Y,1),size(Y,2),K);
 Y = permute(Y, [3 2 1]);  % Chan x Time x Freq
