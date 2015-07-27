@@ -1,9 +1,10 @@
-function [Ybfn Yn tdoas itds] = beamSpaceProject(Y, K, fs, d_m, useKernXcorr)
+function [Ybfn Yn tdoas itds] = beamSpaceProject(Y, K, fs, d_m, useKernXcorr, useMvdr)
 
 % Find K directions of arrival of frames of Y, project Y onto delay-and-sum
 % beamformers in those directions.
 
 if ~exist('useKernXcorr', 'var') || isempty(useKernXcorr), useKernXcorr = false; end
+if ~exist('useMvdr', 'var') || isempty(useMvdr), useMvdr = false; end
 
 [F T Ch] = size(Y);
 taug = tauGrid(d_m, fs, 31);
@@ -46,16 +47,39 @@ itds  = estPerPair(:,index(1:K));
 Ybf = zeros(size(Y,1),size(Y,2),K);
 Y = permute(Y, [3 2 1]);  % Chan x Time x Freq
 for kk=1:K
-    Ybf(:,:,kk) = delayAndSum(Y, perMic(:,index(kk)), F, Ch, wlen);
+    if useMvdr
+        %Ybf(:,:,kk) = mvdrHendriksLoop(Y, perMic(:,index(kk)), F, Ch, wlen);
+        Ybf(:,:,kk) = mvdrHendriksVectorized(Y, perMic(:,index(kk)), F, Ch, wlen);
+        %Ybf(:,:,kk) = mvdrLcmv(Y, perMic(:,index(kk)), F, Ch, wlen);
+    else
+        Ybf(:,:,kk) = delayAndSum(Y, perMic(:,index(kk)), F, Ch, wlen);
+    end
 end
 
 Yn = sqrt(sum(magSq(Ybf),3));
 Ybfn = bsxfun(@rdivide, Ybf, Yn);
 
 
-function Ybf = delayAndSum(Y, tdoas, F, Ch, wlen)    
+function Ybf = delayAndSum(Y, tdoas, F, Ch, wlen)   
 Ybf = zeros(size(Y,3), size(Y,2));
 for ff = 1:F
     Df = sqrt(1/Ch) * exp(2*1i*pi*(ff-1)/wlen*tdoas); % steering vector
     Ybf(ff,:) = Df'*Y(:,:,ff);
+end
+
+function Ybf = mvdrLcmv(Y, tdoas, F, Ch, wlen)
+% Use formulation of MVDR from LCMV (Van Veen & Buckley, 2000, ch61):
+% min_w w'*Ryy*w subject to C'*w = f
+% => w = inv(Ryy)*C*inv(C'*inv(Ryy)*C)*f
+% Where Ryy is the spatial covariance of the mixture.
+% For MVDR, C is just the steering vector and f = 1.
+Ybf = zeros(size(Y,3), size(Y,2));
+for ff = 1:F
+    Ryy = cov(Y(:,:,ff).');
+    Ryy = 0.5 * (Ryy + Ryy');  % Ensure Hermitian
+    
+    Df = sqrt(1/Ch) * exp(2*1i*pi*(ff-1)/wlen*tdoas); % steering vector
+    invRyyDf = Ryy \ Df;
+    w = invRyyDf / (Df' * invRyyDf);  % * 1;
+    Ybf(ff,:) = w'*Y(:,:,ff);
 end
