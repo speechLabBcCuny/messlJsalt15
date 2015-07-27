@@ -72,7 +72,7 @@ switch beamformer
         mvdrMask = mungeMaskForMvdr(mask);
         Xp = zeros(size(X,1), size(X,2), size(mask,3));
         for s = 1:size(mask,3)-1
-            Xp(:,:,s) = maskDrivenMvdr(X, mvdrMask(:,:,s), params.perMicTdoa(:,s), fail);
+            Xp(:,:,s) = maskDrivenMvdr(X(:,:,~fail), mvdrMask(:,:,s), params.perMicTdoa(:,s));
         end
         Xp(:,:,end) = X(:,:,1);  % Garbage source
         data.mvdrMask = single(mvdrMask);

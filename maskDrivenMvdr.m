@@ -1,12 +1,11 @@
-function Y = maskDrivenMvdr(X, M, tdoa, fail)
+function Y = maskDrivenMvdr(X, M, tdoa)
 
 % Perform MVDR beamforming using a mask and a look direction
 %
 % Inputs
-%   X      FxTxC array of complex spectrograms for each mic
+%   X      FxTxC array of complex spectrograms for each (non failed) mic
 %   M      FxT matrix of a mask for all channels where 1 is target, 0 not
 %   tdoa   Cx1 vector of time delays at each microphone measured in samples
-%   fail   Cx1 binary vector indicating whether each mic has failed
 %
 % Outputs
 %   Y      FxT matrix of a complex spectrogram of the MVDR output
@@ -26,8 +25,6 @@ regul=1e-3; % MVDR regularization factor
 wlen = 2*(F-1);
 
 X = permute(X, [3 2 1]);  % Now it is CxTxF
-X = X(~fail,:,:);
-tdoa = tdoa(~fail);
 
 % Estimate noise covariance
 Ncov = zeros(C, C, F);
