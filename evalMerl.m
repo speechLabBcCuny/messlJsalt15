@@ -13,8 +13,8 @@ if exist(outFile, 'file') && ~overwrite
     return
 end
 
-[sepFiles,sepPaths] = findFiles(sepDir, '.*.wav');
-[refFiles,refPaths] = findFiles(refDir, '.*.wav');
+[sepFiles,sepPaths] = findFiles(sepDir, '.*\.wav$');
+[refFiles,refPaths] = findFiles(refDir, '.*\.wav$');
 refBasenames = listMap(@(x) basename(x,0), refFiles);
 
 for f = 1:length(sepFiles)

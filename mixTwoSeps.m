@@ -5,8 +5,8 @@ if ~exist('overwrite', 'var') || isempty(overwrite), overwrite = ...
 if ~exist('files', 'var'), files = []; end
 
 if isempty(files)
-    filesA = findFiles(inDirA, '.*.wav');
-    filesB = findFiles(inDirB, '.*.wav');
+    filesA = findFiles(inDirA, '.*\.wav$');
+    filesB = findFiles(inDirB, '.*\.wav$');
     files = intersect(filesA, filesB);
 end
 
@@ -28,8 +28,8 @@ for f = 1:length(files)
 
     % Find two peaks in ILD histogram corresponding to mask = {min,
     % 1}, normalize so that mask = 1 means ILD 0 between Xa and Xb.
-    Xa = stft(xa', 1024, 1024, 256);
-    Xb = stft(xb', 1024, 1024, 256);
+    Xa = stft(xa(:,1)', 1024, 1024, 256);
+    Xb = stft(xb(:,1)', 1024, 1024, 256);
     ild = db(Xa ./ Xb);
     [h xh] = hist(ild(:), 1000);
     p = pickPeaks(xh, h, 2);
