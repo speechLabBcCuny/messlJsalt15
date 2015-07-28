@@ -68,7 +68,7 @@ switch beamformer
             [~,bestChan] = max(snr);
             Xp(:,:,s) = X(:,:,bestChan);
         end
-    case 'mvdr'
+    case {'mvdr', 'mvdrOnly'}
         mvdrMask = mungeMaskForMvdr(mask);
         Xp = zeros(size(X,1), size(X,2), size(mask,3));
         for s = 1:size(mask,3)-1
@@ -76,6 +76,11 @@ switch beamformer
         end
         Xp(:,:,end) = X(:,:,1);  % Garbage source
         data.mvdrMask = single(mvdrMask);
+        
+        if strcmp(beamformer, 'mvdrOnly')
+            mask = ones(size(mask));
+            data.mask = mask;
+        end
     otherwise
         error('Unknown beamformer: %s', beamformer)
 end
