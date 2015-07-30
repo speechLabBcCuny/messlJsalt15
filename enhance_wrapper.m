@@ -48,7 +48,7 @@ if isempty(inFiles)
 end
 
 if filePerChan
-    lastNChan = [];
+    lastNChan = 0;
 end
 
 for f = part(1):part(2):length(inFiles)
@@ -66,23 +66,22 @@ for f = part(1):part(2):length(inFiles)
     
     % Read file
     if filePerChan
-        [inD inF] = fileparts(inFile);
+        [inD inF inE] = fileparts(inFile);
         assert(reMatch(inF, '\.CH1'));
-        glob = strrep(inF, '.CH1', '.CH[1-9]');
-        [chanFilesShort,chanFiles] = findFiles(inD, glob);
-
-        if ~isempty(lastNChan) && (length(chanFiles) ~= lastNChan)
-            warning('Messl:Chime3:NChanChanged', 'Number of channels changed from %d to %d: %s', ...
-                lastNChan, length(chanFiles), join(chanFilesShort , ', '));
-        end
-        lastNChan = length(chanFiles);
         
-        [sz fs] = wavread(chanFiles{1}, 'size');
-        x = zeros(sz(1), length(chanFiles));
-        for i = 1:length(chanFiles)
-            [x(:,i) fsi] = wavread(chanFiles{i});
+        [sz fs] = wavread(inFile, 'size');
+        x = zeros(sz(1), lastNChan);
+        for i = 1:22
+            chanFile = fullfile(inD, [strrep(inF, '.CH1', sprintf('.CH%d', i)) inE]);
+            if ~exist(chanFile, 'file'), break; end
+            
+            [x(:,i) fsi] = wavread(chanFile);
             assert(fsi == fs);
         end
+        if (lastNChan > 0) && (size(x,2) ~= lastNChan)
+            warning('Messl:Chime3:NChanChanged', 'Number of channels changed from %d to %d', lastNChan, size(x,2));
+        end
+        lastNChan = size(x,2);
     else
         [x fs] = wavread(inFile);
     end
