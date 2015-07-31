@@ -1,5 +1,6 @@
-function mixTwoSeps(inDirA, inDirB, outDir, gainA, gainB, overwrite, files)
+function mixTwoSeps(inDirA, inDirB, outDir, gainA, gainB, overwrite, chans, files)
 
+if ~exist('chans', 'var') || isempty(chans), chans = ':'; end
 if ~exist('overwrite', 'var') || isempty(overwrite), overwrite = ...
         false; end
 if ~exist('files', 'var'), files = []; end
@@ -38,5 +39,5 @@ for f = 1:length(files)
     % Mix and save
     x = (gainA * xa + gainB * xb) / (gainA + gainB);
     ensureDirExists(outFile);
-    wavwrite(x, fs, outFile);
+    wavwrite(x(:,chans), fs, outFile);
 end
