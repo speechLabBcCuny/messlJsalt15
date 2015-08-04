@@ -84,9 +84,8 @@ switch beamformer
         Xp = M;
     case 'bestMic'
         Xp = pickChanWithBestSnr(X, mask, fail);
-    case {'mvdr', 'mvdrOnly'}
-        mvdrOnly = strcmp(beamformer, 'mvdrOnly');
-        [Xp mvdrMask mask] = maskDrivenMvdrMulti(X, mask, fail, params.perMicTdoa, mvdrOnly);
+    case 'mvdr'
+        [Xp mvdrMask mask] = maskDrivenMvdrMulti(X, mask, fail, params.perMicTdoa);
         data.mvdrMask = single(mvdrMask);
     otherwise
         error('Unknown beamformer: %s', beamformer)
@@ -96,4 +95,4 @@ data.mask = single(mask);
 data.params = params;
 
 % Output spectrogram(s)
-Y = M .* mask;
+Y = Xp .* mask;
