@@ -9,12 +9,11 @@
 #   qsub [options] ./qsubMatlab.sh [matlabCommand]
 #
 # e.g.
-#   qsub ./qsubMatlab.sh "fprintf('\$SLURM_PROCID of \$SLURM_NTASKS\n')"
+#   qsub ./qsubMatlab.sh "fprintf('This command must contain at least one space to work with queue.pl\n')"
 
 MAT_DIR=$HOME/code/matlab
 CUR_DIR=`pwd`
 # CHIME_CODE_DIR=/data/corpora/chime3/CHiME3/tools/
 
 echo "$0 \"$@\""
-# matlab -singleCompThread -nodisplay -r "try; cd $MAT_DIR ; startup; cd $CUR_DIR ; addpath(genpath('$CHIME_CODE_DIR')); $@; catch ex; disp(getReport(ex)); end; quit"
 matlab -singleCompThread -nodisplay -r "try; cd $MAT_DIR ; startup; cd $CUR_DIR ; warning('off', 'MATLAB:audiovideo:wavread:functionToBeRemoved'); $@; catch ex; disp(getReport(ex)); end; quit"
