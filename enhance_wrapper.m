@@ -1,4 +1,4 @@
-function enhance_wrapper(stubFn, inDir, outDir, part, overwrite, ignoreErrors, filePerChan, inFiles)
+function enhance_wrapper(stubFn, inDir, outDir, part, overwrite, ignoreErrors, filePerChan, inFilesOrPattern)
 
 % Wrapper like for CHiME3, but working with arbitrary multichannel wavsxs
 %
@@ -26,7 +26,7 @@ if ~exist('overwrite', 'var') || isempty(overwrite), overwrite = false; end
 if ~exist('part', 'var') || isempty(part), part = [1 1]; end
 if ~exist('ignoreErrors', 'var') || isempty(ignoreErrors), ignoreErrors = false; end
 if ~exist('filePerChan', 'var') || isempty(filePerChan), filePerChan = false; end
-if ~exist('inFiles', 'var'), inFiles = []; end
+if ~exist('inFilesOrPattern', 'var'), inFilesOrPattern = ''; end
 
 % Define hyper-parameters
 pow_thresh=-20; % threshold in dB below which a microphone is considered to fail
@@ -36,15 +36,21 @@ if strcmp(inDir, outDir)
     error('Not overwriting input: %s == %s', inDir, outDir);
 end
 
-if isempty(inFiles)
+if isempty(inFilesOrPattern)
     if filePerChan
-        inFiles = findFiles(inDir, '(real|simu).*\.CH1\.wav');
+        inFilesOrPattern = '(real|simu).*\.CH1\.wav$';
     else
-        inFiles = findFiles(inDir, '.*.wav');
+        inFilesOrPattern = '.*\.wav$';
     end
+end
     
+if ~iscell(inFilesOrPattern)
+    inFiles = findFiles(inDir, inFilesOrPattern);
+
     % Shuffle file list reproducibly
     inFiles = inFiles(runWithRandomSeed(22, @randperm, length(inFiles)));
+else
+    inFiles = inFilesOrPattern;
 end
 
 if filePerChan
