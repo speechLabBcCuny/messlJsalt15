@@ -51,39 +51,18 @@ z = zeros([1 size(X,2) size(mask,3)]);
 mask = cat(1, z, mask, z);
 mask = maxSup + (1 - maxSup) * mask;
 
-data.mask = single(mask);
-data.params = params;
-
 switch beamformer
     case 'bestMic'
-        % Figure out what to apply the mask to
-        % Stupidest way: pick the channel with best estimated SNR
-        P = magSq(X);
-        Xp = zeros(size(X,1), size(X,2), size(mask,3));
-        for s = 1:size(mask,3)
-            signal = squeeze(sum(sum(bsxfun(@times, P,   mask(:,:,s)), 1), 2));
-            noise  = squeeze(sum(sum(bsxfun(@times, P, 1-mask(:,:,s)), 1), 2));
-            snr = signal ./ noise - 1e9*fail';
-            
-            [~,bestChan] = max(snr);
-            Xp(:,:,s) = X(:,:,bestChan);
-        end
-    case {'mvdr', 'mvdrOnly'}
-        mvdrMask = mungeMaskForMvdr(mask);
-        Xp = zeros(size(X,1), size(X,2), size(mask,3));
-        for s = 1:size(mask,3)-1
-            Xp(:,:,s) = maskDrivenMvdr(X(:,:,~fail), mvdrMask(:,:,s), params.perMicTdoa(:,s));
-        end
-        Xp(:,:,end) = X(:,:,1);  % Garbage source
+        Xp = pickChanWithBestSnr(X, mask, fail);
+    case 'mvdr'
+        [Xp mvdrMask mask] = maskDrivenMvdrMulti(X, mask, fail, params.perMicTdoa);
         data.mvdrMask = single(mvdrMask);
-        
-        if strcmp(beamformer, 'mvdrOnly')
-            mask = ones(size(mask));
-            data.mask = mask;
-        end
     otherwise
         error('Unknown beamformer: %s', beamformer)
 end
+
+data.mask = single(mask);
+data.params = params;
 
 % Output spectrogram(s)
 Y = Xp .* mask;
