@@ -47,3 +47,5 @@ data.params.useKernXcorr = useKernXcorr;
 data.params.beamformer = beamformer;
 data.params.sr = sr;
 data.params.cleanDir = cleanDir;
+
+Y = X(:,:,1);
