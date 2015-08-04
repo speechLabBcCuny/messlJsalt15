@@ -1,5 +1,4 @@
-function [Y data mask M] = stubI_messlMcIld(X, fail, fs, inFile, I, ...
-                                            allPairs, d, useHardMask, refDir, varargin)
+function [Y data mask M] = stubI_messlMcIld(X, fail, fs, inFile, I, allPairs, d, useHardMask, refDir, beamformer, varargin)
 
 % Multichannel MESSL mask with simple beamforming initialized from ILD
 % between reference file and mic2 or if mic2 has failed, then cross
@@ -9,6 +8,7 @@ if ~exist('I', 'var') || isempty(I), I = 1; end
 if ~exist('allPairs', 'var') || isempty(allPairs), allPairs = true; end
 if ~exist('d', 'var') || isempty(d), d = 0.35; end
 if ~exist('useHardMask', 'var') || isempty(useHardMask), useHardMask = true; end
+if ~exist('beamformer', 'var') || isempty(beamformer), beamformer = 'file'; end
 if ~exist('refDir', 'var') || isempty(refDir), 
     refDir = ['/data/corpora/chime3/CHiME3/data/audio/16kHz/' ...
               'enhancedLocal/beamformit_1s_sc_ch1_3-6/'];
@@ -36,8 +36,8 @@ if exist(refFile, 'file')
     wlen = (size(X,1)-1)*2;
     M = stft_multi(mvdr.', wlen);
 else
-    fprintf('\b NOT using ILD initialization\n');
-    M = [];
+    fprintf('\b NOT using ILD initialization, using MESSL-MVDR instead\n');
+    beamformer = 'mvdr';
 end
 
 if ~fail(2)
@@ -79,19 +79,17 @@ z = zeros([1 size(X,2) size(mask,3)]);
 mask = cat(1, z, mask, z);
 mask = maxSup + (1 - maxSup) * mask;
 
-if isempty(M)
-    % Figure out what to apply the mask to
-    % Stupidest way: pick the channel with best estimated SNR
-    P = magSq(X);
-    M = zeros(size(X,1), size(X,2), size(mask,3));
-    for s = 1:size(mask,3)
-        signal = squeeze(sum(sum(bsxfun(@times, P,   mask(:,:,s)), 1), 2));
-        noise  = squeeze(sum(sum(bsxfun(@times, P, 1-mask(:,:,s)), 1), 2));
-        snr = signal ./ noise - 1e9*fail';
-        
-        [~,bestChan] = max(snr);
-        M(:,:,s) = X(:,:,bestChan);
-    end
+switch beamformer
+    case 'file'
+        Xp = M;
+    case 'bestMic'
+        Xp = pickChanWithBestSnr(X, mask, fail);
+    case {'mvdr', 'mvdrOnly'}
+        mvdrOnly = strcmp(beamformer, 'mvdrOnly');
+        [Xp mvdrMask mask] = maskDrivenMvdrMulti(X, mask, fail, params.perMicTdoa, mvdrOnly);
+        data.mvdrMask = single(mvdrMask);
+    otherwise
+        error('Unknown beamformer: %s', beamformer)
 end
 
 data.mask = single(mask);
