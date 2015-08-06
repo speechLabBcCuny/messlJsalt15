@@ -39,7 +39,7 @@ else
     Xn = X - X1 - X2;
 end
 
-Sil = 0.5*db(mean(magSq(X),3)) > silenceThreshold_db;
+Sil = 0.5*db(mean(magSq(X),3)) < silenceThreshold_db;
 
 loudest = argmax(cat(3, mean(magSq(X1),3), mean(magSq(X2),3), mean(magSq(Xn),3)), 3);
 for i = 1:max(loudest(:))
