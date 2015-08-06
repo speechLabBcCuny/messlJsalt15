@@ -14,6 +14,7 @@ saveDir = fullfile(outDir, 'data/mc_train/');
 SNRdB = 20;
 gain = 0.25;
 fs = 16000;
+otherFStride = 2267;   % Prime to pseudo-randomize other utterance
 
 if ~exist(fullfile(wsjDir,'data'), 'file')
    error(['Could not find wsjcam0 corpus : Please confirm if %s is ' ...
@@ -37,9 +38,9 @@ disp('Loading RIRs...')
 for r = 1:length(rooms)
     for d = 1:length(dists)
         for a = 1:length(angs)
-            rirFile = fullfile(rirAndNoiseDir, 'RIR', ['RIR_' rooms{r} '_' ...
+            rirFile{r,d,a} = fullfile(rirAndNoiseDir, 'RIR', ['RIR_' rooms{r} '_' ...
                                 dists{d} '_' angs{a} '.wav']);
-            rir{r,d,a} = wavread(rirFile);
+            rir{r,d,a} = wavread(rirFile{r,d,a});
 
             [~,delay{r,d,a}] = max(rir{r,d,a}(:,1));
             before_impulse = floor(fs*0.001);
@@ -93,8 +94,9 @@ for f = 1:length(files)
                 % Skip same exact location
                 continue;
             end
+            otherF = mod(otherF + otherFStride - 1, length(files)) + 1;
             while speakerName(files{f}) == speakerName(files{otherF})
-                otherF = mod(otherF, length(files)) + 1;
+                otherF = mod(otherF + otherFStride - 1, length(files)) + 1;
             end
 
             sphFile2 = fullfile(wsjDir, 'data', [files{otherF} '.wv1']);
@@ -102,8 +104,11 @@ for f = 1:length(files)
             x2 = zeroPadOrTrim(x2, size(x,1));
 
             mixNum = oa-1+2*(od-1);
+            mixFile = sprintf('%s_mix%d', baseOutFile, mixNum);
             saveWav(x + x2 + scaledNoise, gain, delay{r,d,a}, fs, ...
-                     sprintf('%s_mix%d.wav', baseOutFile, mixNum));
+                    [mixFile '.wav']);
+            saveMat([mixFile '.mat'], sphFile, sphFile2, noiseFile, ...
+                    r,d,a, delay, rirFile);
         end
     end
 
@@ -154,6 +159,12 @@ y = gain * x(delay:end,:);
 fprintf('Writing: %s\n', outFile);
 ensureDirExists(outFile);
 wavwrite(y, fs, outFile);
+
+function saveMat(matFile, sphFile, sphFile2, noiseFile, r,d,a, delay, rirFile)
+delay = delay{r,d,a};
+rirFile = rirFile{r,d,a};
+save(matFile, 'sphFile', 'sphFile2', 'noiseFile', 'r', 'd', 'a', ...
+     'delay', 'rirFile');
 
 
 %%%%
