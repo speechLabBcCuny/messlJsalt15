@@ -1,19 +1,24 @@
 function mixTwoSeps(inDirA, inDirB, outDir, gainA, gainB, overwrite, chans, files)
 
+if ~exist('inDirB', 'var'), inDirB = ''; end
 if ~exist('chans', 'var') || isempty(chans), chans = ':'; end
 if ~exist('overwrite', 'var') || isempty(overwrite), overwrite = ...
         false; end
 if ~exist('files', 'var'), files = []; end
 
+bSigInExtraChans = isempty(inDirB);
+
 if isempty(files)
     filesA = findFiles(inDirA, '.*\.wav$');
-    filesB = findFiles(inDirB, '.*\.wav$');
-    files = intersect(filesA, filesB);
+    if ~bSigInExtraChans
+        filesB = findFiles(inDirB, '.*\.wav$');
+        files = intersect(filesA, filesB);
+    else
+        files = filesA;
+    end
 end
 
 for f = 1:length(files)
-    inFileA = fullfile(inDirA, files{f});
-    inFileB = fullfile(inDirB, files{f});
     outFile = fullfile(outDir, files{f});
     fprintf('%d: %s\n', f, files{f});
 
@@ -22,10 +27,19 @@ for f = 1:length(files)
         continue;
     end
 
+    inFileA = fullfile(inDirA, files{f});
     [xa fsa] = wavread(inFileA);
-    [xb fsb] = wavread(inFileB);
-    assert(fsa == fsb);
-    fs = fsa;
+
+    if bSigInExtraChans
+        xb = xa(:,end/2+1:end);
+        xa = xa(:,1:end/2);
+        fs = fsa;
+    else
+        inFileB = fullfile(inDirB, files{f});
+        [xb fsb] = wavread(inFileB);
+        assert(fsa == fsb);
+        fs = fsa;
+    end
 
     % Find two peaks in ILD histogram corresponding to mask = {min,
     % 1}, normalize so that mask = 1 means ILD 0 between Xa and Xb.
