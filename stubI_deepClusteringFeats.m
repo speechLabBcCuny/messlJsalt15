@@ -2,7 +2,7 @@ function [Y data] = stubI_deepClusteringFeats(X, fail, sr, fileName, cleanDir, s
 
 % Extract features for multi-channel deep clustering
 
-if ~exist('silenceThreshold_db', 'var') || isempty(silenceThreshold_db), silenceThreshold_db = -60; end
+if ~exist('silenceThreshold_db', 'var') || isempty(silenceThreshold_db), silenceThreshold_db = -70; end
 if ~exist('K', 'var') || isempty(K), K = 15; end
 if ~exist('d_m', 'var') || isempty(d_m), d_m = 0.2; end
 if ~exist('useKernXcorr', 'var') || isempty(useKernXcorr), useKernXcorr = false; end
@@ -20,10 +20,11 @@ wlen = 2*(size(X,1)-1);
 if src1AndNoiseRef
     % Used in two-talker REVERB remixes
     src1File  = regexprep(fileName, '_mix\d.wav', '_src1.wav');
-    noiseFile = regexprep(fileName, '_mix\d.wav', '_src1n.wav');
+    src1AndNoiseFile = regexprep(fileName, '_mix\d.wav', '_src1n.wav');
 
-    [x1 fs] = wavread(fullfile(cleanDir, src1File));
-    [xn fs] = wavread(fullfile(cleanDir, noiseFile));
+    [x1  fs] = wavread(fullfile(cleanDir, src1File));
+    [x1n fs] = wavread(fullfile(cleanDir, src1AndNoiseFile));
+    xn = x1n - x1;
     X1 = stft_multi(x1', wlen);
     Xn = stft_multi(xn', wlen);
     X2 = X - X1 - Xn;
@@ -42,11 +43,12 @@ end
 Sil = 0.5*db(mean(magSq(X),3)) < silenceThreshold_db;
 
 loudest = argmax(cat(3, mean(magSq(X1),3), mean(magSq(X2),3), mean(magSq(Xn),3)), 3);
+mask = zeros(size(X,1), size(X,2), max(loudest(:))+1);
 for i = 1:max(loudest(:))
     mask(:,:,i) = loudest == i;
 end
-mask = bsxfun(@times, mask, ~Sil);
-mask = cat(3, mask, Sil);
+mask(:,:,1:end-1) = bsxfun(@times, mask(:,:,1:end-1), ~Sil);
+mask(:,:,end) = Sil;
 
 % Fields for Daniel
 data.mag_spec = abs(X(:,:,1));
