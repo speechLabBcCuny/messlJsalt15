@@ -38,9 +38,10 @@ if exist(refFile, 'file')
 else
     fprintf('\b NOT using ILD initialization, using MESSL-MVDR instead\n');
     beamformer = 'mvdr';
+    M = [];
 end
 
-if ~fail(2)
+if ~fail(2) && ~isempty(M)
     % Compute ILD between MVDR output and mic 2 (rear-facing)
     ild = db(M(2:end-1,:) ./ X(2:end-1,:,2));
     maskInit = ild > (quantile(ild(:), thresholdQuantile) - thresholdOffset_db);
