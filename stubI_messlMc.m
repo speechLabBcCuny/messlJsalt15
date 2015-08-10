@@ -49,7 +49,7 @@ end
 
 z = zeros([1 size(X,2) size(mask,3)]);
 mask = cat(1, z, mask, z);
-mask = maxSup + (1 - maxSup) * mask;
+mask = maxSup + (1 - 2*maxSup) * mask;
 
 switch beamformer
     case 'bestMic'
