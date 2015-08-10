@@ -21,6 +21,9 @@ switch beamformer
     case 'mvdr'
         [Xp mvdrMask mask] = maskDrivenMvdrMulti(X, mask, fail, perMicTdoa);
         data.mvdrMask2 = mvdrMask;
+    case 'souden'
+        [Xp mvdrMask mask] = mvdrSoudenMulti(X, mask, fail);
+        data.mvdrMask = single(mvdrMask);
     otherwise
         error('Unknown beamformer: %s', beamformer)
 end
