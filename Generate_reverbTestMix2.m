@@ -22,28 +22,28 @@ dists = {'near', 'far'};
 angs = {'AnglA', 'AnglB'};
 
 makeDataset('etc/audio_si_dt5a.lst', rooms, dists, 1, angs, 1, noises, ...
-            wsjDir, rirAndNoiseDir, fullfile(outDir, 'dt/data/near_test'), ...
+            wsjDir, rirAndNoiseDir, fullfile(outDir, 'dt2/data/near_test'), ...
             overwrite)
 makeDataset('etc/audio_si_dt5a.lst', rooms, dists, 2, angs, 1, noises, ...
-            wsjDir, rirAndNoiseDir, fullfile(outDir, 'dt/data/far_test'), ...
+            wsjDir, rirAndNoiseDir, fullfile(outDir, 'dt2/data/far_test'), ...
             overwrite)
 makeDataset('etc/audio_si_dt5b.lst', rooms, dists, 1, angs, 1, noises, ...
-            wsjDir, rirAndNoiseDir, fullfile(outDir, 'dt/data/near_test'), ...
+            wsjDir, rirAndNoiseDir, fullfile(outDir, 'dt2/data/near_test'), ...
             overwrite)
 makeDataset('etc/audio_si_dt5b.lst', rooms, dists, 2, angs, 1, noises, ...
-            wsjDir, rirAndNoiseDir, fullfile(outDir, 'dt/data/far_test'), ...
+            wsjDir, rirAndNoiseDir, fullfile(outDir, 'dt2/data/far_test'), ...
             overwrite)
 makeDataset('etc/audio_si_et_1.lst', rooms, dists, 1, angs, 2, noises, ...
-            wsjDir, rirAndNoiseDir, fullfile(outDir, 'et/data/near_test'), ...
+            wsjDir, rirAndNoiseDir, fullfile(outDir, 'et2/data/near_test'), ...
             overwrite)
 makeDataset('etc/audio_si_et_1.lst', rooms, dists, 2, angs, 2, noises, ...
-            wsjDir, rirAndNoiseDir, fullfile(outDir, 'et/data/far_test'), ...
+            wsjDir, rirAndNoiseDir, fullfile(outDir, 'et2/data/far_test'), ...
             overwrite)
 makeDataset('etc/audio_si_et_2.lst', rooms, dists, 1, angs, 2, noises, ...
-            wsjDir, rirAndNoiseDir, fullfile(outDir, 'et/data/near_test'), ...
+            wsjDir, rirAndNoiseDir, fullfile(outDir, 'et2/data/near_test'), ...
             overwrite)
 makeDataset('etc/audio_si_et_2.lst', rooms, dists, 2, angs, 2, noises, ...
-            wsjDir, rirAndNoiseDir, fullfile(outDir, 'et/data/far_test'), ...
+            wsjDir, rirAndNoiseDir, fullfile(outDir, 'et2/data/far_test'), ...
             overwrite)
 
 
@@ -56,7 +56,10 @@ flist = fullfile(rirAndNoiseDir, flist);
 SNRdB = 20;
 gain = 0.25;
 fs = 16000;
+
+files = readLines(flist);
 otherFStride = 2267;   % Prime to pseudo-randomize other utterance
+keepOaOds = runWithRandomSeed(22, @randi, length(angs)*length(dists)-1, size(files));
 
 Na = length(useAngs);
 Nd = length(useDists);
@@ -84,7 +87,6 @@ for r = 1:length(rooms)
 end
 
 
-files = readLines(flist);
 lastNoiseFile = '';
 otherF = round(length(files)/2);
 for f = 1:length(files)
@@ -124,15 +126,24 @@ for f = 1:length(files)
     saveWav(x + scaledNoise, gain, delay{r,d,a}, c, fs, [baseOutFile '_src1n.wav']);
 
     % Put utterances from different talkers at other positions in the same room
+    numOaOds = 0;
     for od = 1:length(dists)
         for oa = 1:length(angs)
             if (od == d) && (oa == a)
                 % Skip same exact location
                 continue;
             end
+
+            % Pick an utterance from another talker
             otherF = mod(otherF + otherFStride - 1, length(files)) + 1;
             while speakerName(files{f}) == speakerName(files{otherF})
                 otherF = mod(otherF + otherFStride - 1, length(files)) + 1;
+            end
+
+            % Only actually make a single mixture per utterance
+            numOaOds = numOaOds + 1;
+            if numOaOds ~= keepOaOds(f)
+                continue;
             end
 
             sphFile2 = fullfile(wsjDir, 'data', [files{otherF} '.wv1']);
