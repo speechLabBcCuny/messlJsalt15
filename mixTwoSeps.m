@@ -1,10 +1,11 @@
-function mixTwoSeps(inDirA, inDirB, outDir, gainA, gainB, overwrite, chans, files)
+function mixTwoSeps(inDirA, inDirB, outDir, gainA, gainB, overwrite, chans, files, renameFn)
 
 if ~exist('inDirB', 'var'), inDirB = ''; end
 if ~exist('chans', 'var') || isempty(chans), chans = ':'; end
 if ~exist('overwrite', 'var') || isempty(overwrite), overwrite = ...
         false; end
 if ~exist('files', 'var'), files = []; end
+if ~exist('renameFn', 'var') || isempty(renameFn), renameFn = @(x) x; end
 
 bSigInExtraChans = isempty(inDirB);
 
@@ -19,8 +20,8 @@ if isempty(files)
 end
 
 for f = 1:length(files)
-    outFile = fullfile(outDir, files{f});
-    fprintf('%d: %s\n', f, files{f});
+    outFile = fullfile(outDir, renameFn(files{f}));
+    fprintf('%d: %s\n', f, renameFn(files{f}));
 
     if exist(outFile, 'file') && ~overwrite,
         fprintf('\b <-- Skipping\n');
