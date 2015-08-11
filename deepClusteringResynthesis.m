@@ -45,8 +45,8 @@ for f = 1:length(files)
     switch beamformer
       case {'bestMic', 'best'}
         Xp = pickChanWithBestSnr(X, mask, fail);
-      case 'mvdr'
-        [Xp mvdrMask mask] = maskDrivenMvdrMulti(X, mask, fail, perMicTdoa);
+      case 'souden'
+        [Xp mvdrMask mask] = mvdrSoudenMulti(X, mask, fail);
       otherwise
         error('Unknown beamformer: %s', beamformer)
     end
