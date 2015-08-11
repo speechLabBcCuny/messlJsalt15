@@ -1,4 +1,4 @@
-function Y = maskDrivenMvdr(X, M, tdoa)
+function Y = maskDrivenMvdr(X, M, tdoa, Ncov)
 
 % Perform MVDR beamforming using a mask and a look direction
 %
@@ -19,6 +19,8 @@ function Y = maskDrivenMvdr(X, M, tdoa)
 % version 3 (http://www.gnu.org/licenses/gpl.txt)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+if ~exist('Ncov', 'var'), Ncov = []; end
+
 regul=1e-3; % MVDR regularization factor
 
 [F T C] = size(X);
@@ -26,12 +28,14 @@ wlen = 2*(F-1);
 
 X = permute(X, [3 2 1]);  % Now it is CxTxF
 
+if isempty(Ncov)
 % Estimate noise covariance
 Ncov = zeros(C, C, F);
 for f = 1:F
     %Ncov(:,:,f) = X(:,:,f) * bsxfun(@times, X(:,:,f), 1-M(f,:))';
     Tcov = covw(X(:,:,f)', 1-M(f,:)');
     Ncov(:,:,f) = 0.5 * (Tcov + Tcov');  % Ensure Hermitian symmetry
+end
 end
 
 % MVDR beamforming
