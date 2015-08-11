@@ -1,9 +1,10 @@
-function [Y d] = stubI_replayMessl(X, fail, fs, inFile, loadDataDir, beamformer)
+function [Y d] = stubI_replayMessl(X, fail, fs, inFile, loadDataDir, beamformer, I)
 
 % Load a MESSL mask and TDOA and apply it to the input the same way
 % stubI_messlMc would.
 
 if ~exist('beamformer', 'var') || isempty(beamformer), beamformer = 'bestMic'; end
+if ~exist('I', 'var') || isempty(I), I = inf; end
 
 wlen = 2*(size(X,1)-1);
 
@@ -12,7 +13,7 @@ wlen = 2*(size(X,1)-1);
 refFile = fullfile(loadDataDir, strrep(inFile, '.CH1.wav', '.mat'));
 d = load(refFile);
 
-mask = d.data.mask;
+mask = d.data.mask(:,:,1:min(I,end));
 perMicTdoa = d.data.params.perMicTdoa;
 data = d.data;
 switch beamformer
@@ -35,3 +36,4 @@ Y = Xp .* mask;
 % refWavFile = strrep(strrep(refFile, '.mat', '.wav'), '/data/', '/wav/');
 % y2 = wavread(refWavFile);
 % Y2 = stft_multi(y2', wlen);
+1+1;
