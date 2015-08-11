@@ -1,6 +1,6 @@
-function [Xp mvdrMask mask] = maskDrivenMvdrMulti(X, mask, fail, tdoas, Ncov)
+function [Xp mvdrMask mask] = mvdrSoudenMulti(X, mask, fail, Ncov)
 
-% Wrapper around maskDrivenMvdr for use in stubI_messlMc
+% Wrapper around mvdrSouden for use in stubI_messlMc
 % functions. Outputs twice as many channels as sources, the first
 % set are MVDR+mask, the second set are MVDR only.
 
@@ -11,14 +11,10 @@ minNoiseObsPerMic = 3;
 minNoiseObs = minNoiseObsPerMic * size(X,3);
 
 Xp = zeros(size(X,1), size(X,2), size(mask,3));
+mvdrMask = zeros(size(mask));
 for s = 1:size(mask,3)
-    if s > size(tdoas,2)
-        % No MVDR, pick a random channel
-        Xp(:,:,s) = X(:,:,1);
-    else
-        mvdrMask(:,:,s) = mungeMaskForMvdr(mask(:,:,s), minNoiseObs);
-        Xp(:,:,s) = maskDrivenMvdr(X(:,:,~fail), mvdrMask(:,:,s), tdoas(:,s), Ncov);
-    end
+    mvdrMask(:,:,s) = mungeMaskForMvdr(mask(:,:,s), minNoiseObs);
+    Xp(:,:,s) = mvdrSouden(X(:,:,~fail), mvdrMask(:,:,s), Ncov);
 end
 
 % Duplicate signals
