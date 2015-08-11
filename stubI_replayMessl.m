@@ -1,4 +1,4 @@
-function [Y d] = stubI_replayMessl(X, fail, fs, inFile, loadDataDir, statsDir, beamformer, I, recomputeTdoas, d_m)
+function [Y data] = stubI_replayMessl(X, fail, fs, inFile, loadDataDir, statsDir, beamformer, I, recomputeTdoas, d_m)
 
 % Load a MESSL mask and TDOA and apply it to the input the same way
 % stubI_messlMc would.
@@ -37,7 +37,7 @@ else
 end
 
 mask = d.data.mask(:,:,1:min(I,end));
-data = d.data;
+data.origDataFile = refFile;
 switch beamformer
     case 'bestMic'
         Xp = pickChanWithBestSnr(X, mask, fail);
@@ -46,7 +46,7 @@ switch beamformer
         data.mvdrMask2 = mvdrMask;
     case 'souden'
         [Xp mvdrMask mask] = mvdrSoudenMulti(X, mask, fail, Ncov);
-        data.mvdrMask = single(mvdrMask);
+        data.mvdrMask2 = single(mvdrMask);
     otherwise
         error('Unknown beamformer: %s', beamformer)
 end
