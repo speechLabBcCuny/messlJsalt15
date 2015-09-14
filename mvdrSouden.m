@@ -1,4 +1,4 @@
-function Y = mvdrSouden(X, M, Ncov, regulN, refMic, beta)
+function Y = mvdrSouden(X, M, Ncov, Scov, regulN, refMic, beta)
 
 % Perform MVDR beamforming using a mask only.  See Souden, Benesty,
 % and Affes (2010). Based on their equation (18) with beta = 0.
@@ -9,6 +9,7 @@ regulM = 0;
 minCor = 1;
 
 if ~exist('Ncov', 'var'), Ncov = []; end
+if ~exist('Scov', 'var'), Scov = []; end
 if ~exist('regulN', 'var') || isempty(regulN), regulN = 1e-3; end
 if ~exist('refMic', 'var') || isempty(refMic), refMic = 1; end
 if ~exist('beta', 'var') || isempty(beta), beta = 0; end
@@ -27,10 +28,16 @@ if isempty(Ncov)
     end
 end
 
-Mcov = zeros(C, C, F);
-for f = 1:F
-    Tcov = covw(X(:,:,f)', ones(size(M(f,:)')));
-    Mcov(:,:,f) = 0.5 * (Tcov + Tcov');  % Ensure Hermitian symmetry
+if ~isempty(Scov)
+    % Simulate Mcov from Scov and Ncov
+    Mcov = Scov + Ncov;
+else
+    % Estimate mixture covariance
+    Mcov = zeros(C, C, F);
+    for f = 1:F
+        Tcov = covw(X(:,:,f)', ones(size(M(f,:)')));
+        Mcov(:,:,f) = 0.5 * (Tcov + Tcov');  % Ensure Hermitian symmetry
+    end
 end
 
 % MVDR beamforming
