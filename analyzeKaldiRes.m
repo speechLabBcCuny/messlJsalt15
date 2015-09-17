@@ -4,8 +4,9 @@ function dicts = analyzeKaldiRes(resDir, nPrint)
 
 if ~exist('nPrint', 'var') || isempty(nPrint), nPrint = 10; end
 
-dictNames = {'cor','ins','del','sub','subIn','subOut'};
-dictLongNames = {'Correct', 'Insertions', 'Deletions', 'Substitutions', 'Substituted in', 'Substituted out'};
+dictNames = {'ref','cor','ins','del','sub','subIn','subOut'};
+dictLongNames = {'Appearances', 'Correct', 'Insertions', 'Deletions', 'Substitutions', 'Substituted in', 'Substituted out'};
+ratioDicts = [2 3 4 6 7];
 
 % TODO: make this work for actual kaldi directory structure
 referenceFile = fullfile(resDir, 'test_filt.txt');
@@ -20,7 +21,7 @@ refWords = refWords(refI);
 traWords = traWords(traI);
 
 for d = 1:length(dictNames)
-    dicts.(dictNames{d}) = struct('A',  0);
+    dicts.(dictNames{d}) = struct('wA',  0);
 end
 
 % run dynamic programming on each sentence
@@ -36,18 +37,22 @@ for f = 1:length(files)
     numIns(f) = sum(labels == 1);
     numDel(f) = sum(labels == 2);
     numSub(f) = sum(labels == 3);
+
+    for w = 1:length(ref)
+        dicts.ref = dictInc(dicts.ref, ref{w});
+    end
     
     for w = 1:length(refAli)
         if labels(w) == 0
-            dicts.cor = dictInsert(dicts.cor, traAli{w});
+            dicts.cor = dictInc(dicts.cor, traAli{w});
         elseif labels(w) == 1
-            dicts.ins = dictInsert(dicts.ins, traAli{w});
+            dicts.ins = dictInc(dicts.ins, traAli{w});
         elseif labels(w) == 2
-            dicts.del = dictInsert(dicts.del, refAli{w});
+            dicts.del = dictInc(dicts.del, refAli{w});
         elseif labels(w) == 3
-            dicts.subOut = dictInsert(dicts.subOut, refAli{w});
-            dicts.subIn = dictInsert(dicts.subIn,  traAli{w});
-            dicts.sub = dictInsert(dicts.sub, sprintf('%s_to_%s', refAli{w}, traAli{w}));
+            dicts.subOut = dictInc(dicts.subOut, refAli{w});
+            dicts.subIn = dictInc(dicts.subIn,  traAli{w});
+            dicts.sub = dictInc(dicts.sub, sprintf('%s_to_%s', refAli{w}, traAli{w}));
         else
             error('Bad label: %d', labels(w))
         end
@@ -77,7 +82,11 @@ for d = 1:length(dictNames)
     printTopEntries(dicts.(dictNames{d}), nPrint, dictLongNames{d});
 end
 
-% TODO: print top proportional words of each type
+% print top proportional words of each type
+for d = ratioDicts
+    ratio = combineStructs(@(x,y) (x+1) ./ (y+1), dicts.(dictNames{d}), dicts.ref);
+    printTopEntries(ratio, nPrint, dictLongNames{d});
+end
 
 
 
@@ -118,7 +127,7 @@ legend(labels)
 
 % function [simCor simIns simDel simSub] = shuffleErrors(numWords, numCor, numIns, numDel, numSub)
 
-function d = dictInsert(d, word)
+function d = dictInc(d, word)
 % Word should not have any forbidden characters at this point...
 word = ['w' word];
 if ~isfield(d, word)
@@ -141,7 +150,23 @@ totalCount = sum(vals);
 
 function printTopEntries(d, n, title)
 [k v totalCount] = topEntries(d, n);
-fprintf('\n%s: %d\n', title, totalCount);
+fprintf('\n%s: %g\n', title, totalCount);
 for i = 1:length(k)
-    fprintf('%s: %d\n', k{i}(2:end), v(i));
+    fprintf('%s: %g\n', k{i}(2:end), v(i));
+end
+
+function z = combineStructs(fn, x, y)
+% Create a structure with the keys of x and y and the values combined using
+% the function zv = fn(xv, yv);  If a key only exists in one structure, the
+% value of 0 will be used in its place.
+keys = union(fieldnames(x), fieldnames(y));
+for k = 1:length(keys)
+    key = keys{k};
+    if ~isfield(x, key)
+        x.(key) = 0;
+    end
+    if ~isfield(y, key)
+        y.(key) = 0;
+    end
+    z.(key) = fn(x.(key), y.(key));
 end
