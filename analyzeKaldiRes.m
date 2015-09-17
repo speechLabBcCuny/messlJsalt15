@@ -1,8 +1,9 @@
-function dicts = analyzeKaldiRes(resDir, nPrint)
+function dicts = analyzeKaldiRes(resDir, nPrint, diffDicts)
 
 % Analyze the results of a kaldi experiment in more depth than just WER
 
 if ~exist('nPrint', 'var') || isempty(nPrint), nPrint = 10; end
+if ~exist('diffDicts', 'var'), diffDicts = []; end
 
 dictNames = {'ref','cor','ins','del','sub','subIn','subOut'};
 dictLongNames = {'Appearances', 'Correct', 'Insertions', 'Deletions', 'Substitutions', 'Substituted in', 'Substituted out'};
@@ -78,16 +79,26 @@ plotHists(bins, numErr./numWords, numCor./numWords, numIns./numWords, numDel./nu
 % plot histograms of those to compare
 
 % Print most frequent words for each list
+printHeading('Counts')
 for d = 1:length(dictNames)
     printTopEntries(dicts.(dictNames{d}), nPrint, dictLongNames{d});
 end
 
 % print top proportional words of each type
+printHeading('Proportions')
 for d = ratioDicts
     ratio = combineStructs(@(x,y) (x+1) ./ (y+1), dicts.(dictNames{d}), dicts.ref);
     printTopEntries(ratio, nPrint, dictLongNames{d});
 end
 
+% Compare to results from another system
+if ~isempty(diffDicts)
+    printHeading('Differences')
+    for d = 1:length(dictNames)
+        diff = combineStructs(@minus, dicts.(dictNames{d}), diffDicts.(dictNames{d}));
+        printTopEntries(diff, nPrint, dictLongNames{d});
+    end
+end
 
 
 function [files words] = loadTranscripts(file)
@@ -170,3 +181,8 @@ for k = 1:length(keys)
     end
     z.(key) = fn(x.(key), y.(key));
 end
+
+function printHeading(title)
+fprintf('\n\n==========================================\n')
+fprintf('%s\n', title)
+fprintf('==========================================\n')
