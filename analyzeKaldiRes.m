@@ -1,6 +1,11 @@
-function analyzeKaldiRes(resDir)
+function dicts = analyzeKaldiRes(resDir, nPrint)
 
 % Analyze the results of a kaldi experiment in more depth than just WER
+
+if ~exist('nPrint', 'var') || isempty(nPrint), nPrint = 10; end
+
+dictNames = {'cor','ins','del','sub','subIn','subOut'};
+dictLongNames = {'Correct', 'Insertions', 'Deletions', 'Substitutions', 'Substituted in', 'Substituted out'};
 
 % TODO: make this work for actual kaldi directory structure
 referenceFile = fullfile(resDir, 'test_filt.txt');
@@ -14,12 +19,9 @@ transcriptFile = fullfile(resDir, '11.txt');
 refWords = refWords(refI);
 traWords = traWords(traI);
 
-dictCor = struct('A',  0);
-dictIns = struct('A',  0);
-dictDel = struct('A',  0);
-dictSub = struct('A',  0);
-dictSubIn = struct('A',  0);
-dictSubOut = struct('A',  0);
+for d = 1:length(dictNames)
+    dicts.(dictNames{d}) = struct('A',  0);
+end
 
 % run dynamic programming on each sentence
 for f = 1:length(files)
@@ -37,15 +39,15 @@ for f = 1:length(files)
     
     for w = 1:length(refAli)
         if labels(w) == 0
-            dictCor = dictInsert(dictCor, traAli{w});
+            dicts.cor = dictInsert(dicts.cor, traAli{w});
         elseif labels(w) == 1
-            dictIns = dictInsert(dictIns, traAli{w});
+            dicts.ins = dictInsert(dicts.ins, traAli{w});
         elseif labels(w) == 2
-            dictDel = dictInsert(dictDel, refAli{w});
+            dicts.del = dictInsert(dicts.del, refAli{w});
         elseif labels(w) == 3
-            dictSubOut = dictInsert(dictSubOut, refAli{w});
-            dictSubIn = dictInsert(dictSubIn,  traAli{w});
-            dictSub = dictInsert(dictSub, sprintf('%s_to_%s', refAli{w}, traAli{w}));
+            dicts.subOut = dictInsert(dicts.subOut, refAli{w});
+            dicts.subIn = dictInsert(dicts.subIn,  traAli{w});
+            dicts.sub = dictInsert(dicts.sub, sprintf('%s_to_%s', refAli{w}, traAli{w}));
         else
             error('Bad label: %d', labels(w))
         end
@@ -71,13 +73,9 @@ plotHists(bins, numErr./numWords, numCor./numWords, numIns./numWords, numDel./nu
 % plot histograms of those to compare
 
 % Print most frequent words for each list
-nPrint = 10;
-printTopEntries(dictCor, nPrint, 'Correct');
-printTopEntries(dictIns, nPrint, 'Insertions');
-printTopEntries(dictDel, nPrint, 'Deletions');
-printTopEntries(dictSub, nPrint, 'Substitutions');
-printTopEntries(dictSubIn, nPrint, 'Substituted in');
-printTopEntries(dictSubOut, nPrint, 'Substituted out');
+for d = 1:length(dictNames)
+    printTopEntries(dicts.(dictNames{d}), nPrint, dictLongNames{d});
+end
 
 % TODO: print top proportional words of each type
 
