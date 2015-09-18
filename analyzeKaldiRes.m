@@ -10,8 +10,6 @@ dictNames = {'ref','cor','ins','del','sub','subIn','subOut'};
 dictLongNames = {'Appearances', 'Correct', 'Insertions', 'Deletions', 'Substitutions', 'Substituted in', 'Substituted out'};
 ratioDicts = [2 3 4 6 7];
 
-% TODO: make this work for actual kaldi directory structure
-
 resDir = fullfile(baseDir,'exp','mdm8','dnn4_pretrain-dbn_dnn',['decode_chime3_lm_tgpr_5k_et05_real_' sysName], 'scoring');
 referenceFile = fullfile(resDir, 'test_filt.txt');
 transcriptFile = fullfile(resDir, sprintf('%d.tra', lmWeight));
@@ -87,14 +85,14 @@ plotHists(bins, numErr./numWords, numCor./numWords, numIns./numWords, numDel./nu
 % Print most frequent words for each list
 printHeading('Counts')
 for d = 1:length(dictNames)
-    printTopEntries(dicts.(dictNames{d}), nPrint, dictLongNames{d});
+    printTopEntries(dicts.(dictNames{d}), nPrint, dictLongNames{d}, 0);
 end
 
 % print top proportional words of each type
 printHeading('Proportions')
 for d = ratioDicts
     ratio = combineStructs(@(x,y) (x+1) ./ (y+1), dicts.(dictNames{d}), dicts.ref);
-    printTopEntries(ratio, nPrint, dictLongNames{d});
+    printTopEntries(ratio, nPrint, dictLongNames{d}, 1);
 end
 
 % Compare to results from another system
@@ -102,7 +100,7 @@ if ~isempty(diffDicts)
     printHeading('Differences')
     for d = 1:length(dictNames)
         diff = combineStructs(@minus, dicts.(dictNames{d}), diffDicts.(dictNames{d}));
-        printTopEntries(diff, nPrint, dictLongNames{d});
+        printTopEntries(diff, nPrint, dictLongNames{d}, 1);
     end
 end
 
@@ -154,26 +152,34 @@ if ~isfield(d, word)
 end
 d.(word) = d.(word) + 1;
 
-function [k v totalCount] = topEntries(d, n)
+function [k v totalCount] = topEntries(d, n, direction)
 % Take the top n key-value pairs from structure d, where top is defined as
 % having the highest value (which should be a number).
+if nargin < 3, direction = 'descend'; end
 keys = fieldnames(d);
 vals = cell2mat(struct2cell(d));
 for i=1:length(keys)
     srtKeys{i} = sprintf('%06d%s', vals(i), keys{i});
 end
-[~,ord] = sort(vals, 'descend');
+[~,ord] = sort(vals, direction);
 k = keys(ord(1:n));
 v = vals(ord(1:n));
 totalCount = sum(vals);
 
-function printTopEntries(d, n, title)
-[k v totalCount] = topEntries(d, n);
+function printTopEntries(d, n, title, includeBottom)
+[k v totalCount] = topEntries(d, n, 'descend');
 fprintf('\n%s: %g\n', title, totalCount);
 for i = 1:length(k)
     fprintf('%s: %g\n', k{i}(2:end), v(i));
 end
-
+if includeBottom
+    fprintf('...\n');
+    [k v] = topEntries(d, n, 'ascend');
+    for i = length(k):-1:1
+        fprintf('%s: %g\n', k{i}(2:end), v(i));
+    end
+end
+    
 function z = combineStructs(fn, x, y)
 % Create a structure with the keys of x and y and the values combined using
 % the function zv = fn(xv, yv);  If a key only exists in one structure, the
