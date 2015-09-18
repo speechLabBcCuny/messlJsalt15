@@ -1,20 +1,26 @@
-function dicts = analyzeKaldiRes(resDir, nPrint, diffDicts)
+function dicts = analyzeKaldiRes(baseDir, sysName, nPrint, diffDicts, lmWeight)
 
 % Analyze the results of a kaldi experiment in more depth than just WER
 
 if ~exist('nPrint', 'var') || isempty(nPrint), nPrint = 10; end
 if ~exist('diffDicts', 'var'), diffDicts = []; end
+if ~exist('lmWeight', 'var') || isempty(lmWeight), lmWeight = 11; end
 
 dictNames = {'ref','cor','ins','del','sub','subIn','subOut'};
 dictLongNames = {'Appearances', 'Correct', 'Insertions', 'Deletions', 'Substitutions', 'Substituted in', 'Substituted out'};
 ratioDicts = [2 3 4 6 7];
 
 % TODO: make this work for actual kaldi directory structure
+
+resDir = fullfile(baseDir,'exp','mdm8','dnn4_pretrain-dbn_dnn',['decode_chime3_lm_tgpr_5k_et05_real_' sysName], 'scoring');
 referenceFile = fullfile(resDir, 'test_filt.txt');
-transcriptFile = fullfile(resDir, '11.txt');
+transcriptFile = fullfile(resDir, sprintf('%d.tra', lmWeight));
+dictionaryFile = fullfile(baseDir, 'data/lang_ami2chime3/words.txt');
 
 [refFiles refWords] = loadTranscripts(referenceFile);
 [traFiles traWords] = loadTranscripts(transcriptFile);
+
+traWords = int2sym(traWords, dictionaryFile);
 
 % Match sentences
 [files refI traI] = intersect(refFiles, traFiles);
@@ -101,6 +107,8 @@ if ~isempty(diffDicts)
 end
 
 
+%%%%%%%%%% Functions %%%%%%%%%
+
 function [files words] = loadTranscripts(file)
 lines = textArray(file);
 sents = listMap(@(x) split(chop(x), ' '), sort(lines(1:end-1)));
@@ -186,3 +194,33 @@ function printHeading(title)
 fprintf('\n\n==========================================\n')
 fprintf('%s\n', title)
 fprintf('==========================================\n')
+
+function symSents = int2sym(intSents, dictionaryFile)
+% Map .tra file containing integers to .txt file containing words
+i2s = int2symLoad(dictionaryFile);
+symSents = cell(size(intSents));
+for s = 1:length(intSents)
+    symSents{s} = listMap(@(x) int2symLookup(i2s, x), intSents{s});
+end
+
+function i2s = int2symLoad(dictionaryFile)
+% Build a dictionary mapping from string version of integer to word with
+% non-alphanumeric characters replaced by underscores.
+lines = textArray(dictionaryFile);
+pairs = listMap(@(x) split(chop(x), ' '), lines(1:end-1));
+pairs = listMap(@(xs) regexprep(xs, '\W', '_'), pairs);
+
+i2s = struct('A', 'A');
+for p = 1:length(pairs)
+    key = sprintf('i%s', pairs{p}{2});
+    i2s.(key) = pairs{p}{1};
+end
+i2s = rmfield(i2s, 'A');
+
+function sym = int2symLookup(i2s, i)
+key = sprintf('i%s', i);
+%if isfield(i2s, key)
+    sym = i2s.(key);
+%else
+%    sym = '';
+%end
