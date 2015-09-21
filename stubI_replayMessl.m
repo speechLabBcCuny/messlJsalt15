@@ -14,7 +14,7 @@ wlen = 2*(size(X,1)-1);
 M = sum(~fail);
 
 % Load MESSL data structure
-refFile = fullfile(loadDataDir, strrep(inFile, '.CH1.wav', '.mat'));
+refFile = fullfile(loadDataDir, regexprep(inFile, '(\.CH1)?\.wav$', '.mat'));
 d = load(refFile);
 
 if strcmp(tdoaSrc, 'ipd') || strcmp(ncovSrc, 'ipd')
@@ -44,7 +44,7 @@ switch ncovSrc
     case 'file'
         % Load precomputed stats for noise covariance.
         % Forces ignoring mask for noise covariance estimation
-        statsFile = fullfile(statsDir, strrep(inFile, '.CH1.wav', '.mat'));
+        statsFile = fullfile(statsDir, regexprep(inFile, '(\.CH1)?\.wav', '.mat'));
         if exist(statsFile, 'file')
             stats = load(statsFile);
             Ncov = stats.Ncov;
