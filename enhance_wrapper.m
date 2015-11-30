@@ -121,7 +121,7 @@ for f = part(1):part(2):length(inFiles)
     y = istft_multi(Y, nsampl).';
     y = y * 0.999/max(abs(y(:)));
     ensureDirExists(outWavFile);
-    wavwrite(y, fs, outWavFile);
+    audiowrite(outWavFile, y, fs);
     ensureDirExists(outMaskFile);
     save(outMaskFile, 'data', 'fs', 'nbin', 'nfram', 'nsampl', 'fail');
 end
