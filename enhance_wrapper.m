@@ -75,13 +75,14 @@ for f = part(1):part(2):length(inFiles)
         [inD inF inE] = fileparts(inFile);
         assert(reMatch(inF, '\.CH1'));
         
-        [sz fs] = wavread(inFile, 'size');
-        x = zeros(sz(1), lastNChan);
+        info = audioinfo(inFile);
+        fs = info.SampleRate;
+        x = zeros(info.TotalSamples, lastNChan);
         for i = 1:22
             chanFile = fullfile(inD, [strrep(inF, '.CH1', sprintf('.CH%d', i)) inE]);
             if ~exist(chanFile, 'file'), break; end
             
-            [x(:,i) fsi] = wavread(chanFile);
+            [x(:,i) fsi] = audioread(chanFile);
             assert(fsi == fs);
         end
         if (lastNChan > 0) && (size(x,2) ~= lastNChan)
@@ -89,7 +90,7 @@ for f = part(1):part(2):length(inFiles)
         end
         lastNChan = size(x,2);
     else
-        [x fs] = wavread(inFile);
+        [x fs] = audioread(inFile);
     end
     nsampl = size(x,1);
 
