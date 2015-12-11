@@ -29,7 +29,7 @@ for f = 1:length(files)
     end
 
     inFileA = fullfile(inDirA, files{f});
-    [xa fsa] = wavread(inFileA);
+    [xa fsa] = audioread(inFileA);
 
     if bSigInExtraChans
         xb = xa(:,end/2+1:end);
@@ -37,7 +37,7 @@ for f = 1:length(files)
         fs = fsa;
     else
         inFileB = fullfile(inDirB, files{f});
-        [xb fsb] = wavread(inFileB);
+        [xb fsb] = audioread(inFileB);
         assert(fsa == fsb);
         fs = fsa;
     end
@@ -54,5 +54,5 @@ for f = 1:length(files)
     % Mix and save
     x = (gainA * xa + gainB * xb) / (gainA + gainB);
     ensureDirExists(outFile);
-    wavwrite(x(:,chans), fs, outFile);
+    audiowrite(outFile, x(:,chans), fs);
 end
