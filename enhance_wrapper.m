@@ -109,8 +109,9 @@ for f = part(1):part(2):length(inFiles)
     catch ex
         if ignoreErrors
             disp(getReport(ex))
-            Y = X;
-            data = [];
+            % Y = X;
+            % data = [];
+            continue;
         else
             rethrow(ex)
         end
