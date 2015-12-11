@@ -5,9 +5,9 @@ function [Y data] = stubI_replayMessl(X, fail, fs, inFile, loadDataDir, statsDir
 
 if ~exist('statsDir', 'var'), statsDir = ''; end
 if ~exist('beamformer', 'var') || isempty(beamformer), beamformer = 'bestMic'; end
-if ~exist('I', 'var') || isempty(I), I = inf; end
 if ~exist('tdoaSrc', 'var') || isempty(tdoaSrc), tdoaSrc = 'dataItd'; end
 if ~exist('ncovSrc', 'var') || isempty(ncovSrc), ncovSrc = 'mask'; end
+if ~exist('I', 'var') || isempty(I), I = inf; end
 if ~exist('d_m', 'var') || isempty(d_m), d_m = 0.12; end
 
 wlen = 2*(size(X,1)-1);
