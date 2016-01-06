@@ -78,11 +78,16 @@ for f = part(1):part(2):length(inFiles)
         info = audioinfo(inFile);
         fs = info.SampleRate;
         x = zeros(info.TotalSamples, lastNChan);
-        for i = 1:22
+        if filePerChan == 2
+            startChan = 0;
+        else
+            startChan = 1;
+        end
+        for i = startChan : 22
             chanFile = fullfile(inD, [strrep(inF, '.CH1', sprintf('.CH%d', i)) inE]);
             if ~exist(chanFile, 'file'), break; end
             
-            [x(:,i) fsi] = audioread(chanFile);
+            [x(:,i-startChan+1) fsi] = audioread(chanFile);
             assert(fsi == fs);
         end
         if (lastNChan > 0) && (size(x,2) ~= lastNChan)
