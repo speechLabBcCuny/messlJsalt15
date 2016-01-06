@@ -1,4 +1,4 @@
-function [Y data] = stubI_replayMessl(X, fail, fs, inFile, loadDataDir, statsDir, beamformer, tdoaSrc, ncovSrc, I, d_m)
+function [Y data] = stubI_replayMessl(X, fail, fs, inFile, loadDataDir, statsDir, beamformer, tdoaSrc, ncovSrc, I, maxSup_db, d_m)
 
 % Load a MESSL mask and TDOA and apply it to the input the same way
 % stubI_messlMc would.
@@ -8,6 +8,7 @@ if ~exist('beamformer', 'var') || isempty(beamformer), beamformer = 'bestMic'; e
 if ~exist('tdoaSrc', 'var') || isempty(tdoaSrc), tdoaSrc = 'dataItd'; end
 if ~exist('ncovSrc', 'var') || isempty(ncovSrc), ncovSrc = 'mask'; end
 if ~exist('I', 'var') || isempty(I), I = inf; end
+if ~exist('maxSup_db', 'var') || isempty(maxSup_db), maxSup_db = 40; end
 if ~exist('d_m', 'var') || isempty(d_m), d_m = 0.12; end
 
 wlen = 2*(size(X,1)-1);
@@ -73,6 +74,8 @@ switch beamformer
     otherwise
         error('Unknown beamformer: %s', beamformer)
 end
+maxSup = 10^(-maxSup_db / 20);
+mask = max(mask, maxSup);
 data.mask2 = mask;
 
 % Output spectrogram(s)
