@@ -63,6 +63,10 @@ end
 mask = d.data.mask(:,:,1:min(I,end));
 data.origDataFile = refFile;
 switch beamformer
+    case 'mic1'
+        Xp = repmat(X(:,:,1), [1 1 size(mask,3)]);
+    case 'mic2'
+        Xp = repmat(X(:,:,2), [1 1 size(mask,3)]);
     case 'bestMic'
         Xp = pickChanWithBestSnr(X, mask, fail);
     case 'mvdr'
