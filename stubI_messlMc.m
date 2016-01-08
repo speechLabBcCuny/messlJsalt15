@@ -1,10 +1,10 @@
-function [Y data mask Xp] = stubI_messlMc(X, fail, fs, inFile, I, allPairs, d, useHardMask, beamformer, varargin)
+function [Y data mask Xp] = stubI_messlMc(X, fail, fs, inFile, I, refMic, d, useHardMask, beamformer, varargin)
 
 % Multichannel MESSL mask with simple beamforming initialized from cross
 % correlations between mics.
 
 if ~exist('I', 'var') || isempty(I), I = 1; end
-if ~exist('allPairs', 'var') || isempty(allPairs), allPairs = true; end
+if ~exist('refMic', 'var') || isempty(refMic), refMic = 0; end
 if ~exist('d', 'var') || isempty(d), d = 0.35; end
 if ~exist('useHardMask', 'var') || isempty(useHardMask), useHardMask = true; end
 if ~exist('beamformer', 'var') || isempty(beamformer), beamformer = 'bestMic'; end
@@ -23,15 +23,9 @@ fprintf('Max ITD: %g samples\n', tau(end));
 
 maskInit = [];
 
-% Figure out which mic to use for reference
-if allPairs
-    refMic = 0;
-else
-    if ~fail(2)
-        refMic = 2;
-    else
-        refMic = find(~fail, 1, 'first');
-    end
+% See if reference mic has failed. refMic = 0 means all pairs.
+if (refMic > 0) && fail(refMic)
+    refMic = find(~fail, 1, 'first');
     if isempty(refMic)
         error('All potential reference mics have failed')
     end
