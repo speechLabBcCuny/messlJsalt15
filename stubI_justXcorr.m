@@ -13,7 +13,7 @@ for i = 1:size(X,3)
     for j = i+1:size(X,3)
         % [tdoa(i,j,:) masks failure(i,j)] = phatLoc(X(:,:,[i j]), tau, 3, 1024, 1);
         [r lags] = xcorr(x(:,i), x(:,j), maxDelay);
-        if i == 1, plot(lags, r); drawnow, end
+        % if i == 1, plot(lags, r); drawnow, end
         tdoa(i,j) = lags(argmax(abs(r)));
     end
 end

@@ -85,7 +85,13 @@ for f = part(1):part(2):length(inFiles)
         end
         for i = startChan : 22
             chanFile = fullfile(inD, [strrep(inF, '.CH1', sprintf('.CH%d', i)) inE]);
-            if ~exist(chanFile, 'file'), break; end
+            if ~exist(chanFile, 'file')
+                if i > 0
+                    break
+                else
+                    error('Expected to find CH0 file %s', chanFile)
+                end
+            end
             
             [x(:,i-startChan+1) fsi] = audioread(chanFile);
             assert(fsi == fs);
