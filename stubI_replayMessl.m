@@ -75,6 +75,9 @@ switch beamformer
     case 'souden'
         [Xp mvdrMask mask] = mvdrSoudenMulti(X, mask, fail, Ncov, Scov);
         data.mvdrMask2 = single(mvdrMask);
+    case 'souden0'
+        [Xp mvdrMask mask] = mvdrSoudenMulti(X, mask, fail, Ncov, Scov, 0);
+        data.mvdrMask2 = single(mvdrMask);
     otherwise
         error('Unknown beamformer: %s', beamformer)
 end

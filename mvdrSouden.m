@@ -1,4 +1,4 @@
-function Y = mvdrSouden(X, M, Ncov, Scov, regulN, refMic, beta)
+function Y = mvdrSouden(X, M, Ncov, Scov, regulN, refMic, eyeCoef)
 
 % Perform MVDR beamforming using a mask only.  See Souden, Benesty,
 % and Affes (2010). Based on their equation (18) with beta = 0.
@@ -7,12 +7,13 @@ function Y = mvdrSouden(X, M, Ncov, Scov, regulN, refMic, beta)
 wlen = 2*(F-1);
 regulM = 0;
 minCor = 1;
+beta = 0;
 
 if ~exist('Ncov', 'var'), Ncov = []; end
 if ~exist('Scov', 'var'), Scov = []; end
 if ~exist('regulN', 'var') || isempty(regulN), regulN = 1e-3; end
 if ~exist('refMic', 'var') || isempty(refMic), refMic = 1; end
-if ~exist('beta', 'var') || isempty(beta), beta = 0; end
+if ~exist('eyeCoef', 'var') || isempty(eyeCoef), eyeCoef = 1; end
 
 pickMic = zeros(C,1);
 pickMic(refMic) = 1 / length(refMic);
@@ -45,13 +46,12 @@ Y  = zeros(F,T);
 for f = 1:F,
     RNcov = Ncov(:,:,f) + regulN * diag(diag(Mcov(:,:,f)));
     RMcov = Mcov(:,:,f) + regulM * diag(diag(Mcov(:,:,f)));
-    num = (RNcov \ RMcov - 0*eye(C));
-    lambda = real(trace(num));
-    %lambda = max(minCor, real(trace(num)));
+    num = (RNcov \ RMcov - eyeCoef*eye(C));
+    %lambda = real(trace(num));
+    lambda = max(minCor, real(trace(num)));
     den = beta + lambda;
     h = (num * pickMic) / den;
     t(f) = real(trace(num));
-    % t(f) = den;
     Y(f,:) = h' * X(:,:,f);
 end
 1+1;
