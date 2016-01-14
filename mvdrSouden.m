@@ -45,11 +45,13 @@ Y  = zeros(F,T);
 for f = 1:F,
     RNcov = Ncov(:,:,f) + regulN * diag(diag(Mcov(:,:,f)));
     RMcov = Mcov(:,:,f) + regulM * diag(diag(Mcov(:,:,f)));
-    num = (RNcov \ RMcov - eye(C));
-    %lambda = real(trace(num));
-    lambda = max(minCor, real(trace(num)));
+    num = (RNcov \ RMcov - 0*eye(C));
+    lambda = real(trace(num));
+    %lambda = max(minCor, real(trace(num)));
     den = beta + lambda;
     h = (num * pickMic) / den;
-    t(f) = den;
+    t(f) = real(trace(num));
+    % t(f) = den;
     Y(f,:) = h' * X(:,:,f);
 end
+1+1;
