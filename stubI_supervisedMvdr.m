@@ -20,8 +20,8 @@ if ~includeRef
     X = X(:,:,2:end);
     fail = fail(2:end);
 end
-    
-[Xp mvdrMask adapt] = mvdrSoudenMulti(X, adapt, fail, Ncov, Scov);
+
+[Xp mvdrMask adapt] = mvdrSoudenMulti(X, adapt, fail, Ncov, Scov, 0);
 data.mvdrMask = single(mvdrMask);
 
 mask = cat(3, mask, ones(size(mask)));
