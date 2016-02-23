@@ -1,7 +1,24 @@
 function Y = mvdrSouden(X, M, Ncov, Scov, regulN, refMic, eyeCoef)
 
-% Perform MVDR beamforming using a mask only.  See Souden, Benesty,
-% and Affes (2010). Based on their equation (18) with beta = 0.
+% Perform MVDR beamforming using a mask only (no look direction).  
+%
+%   Y = mvdrSouden(X, M, Ncov, Scov, regulN, refMic, eyeCoef)
+%
+% See Souden, Benesty, and Affes (2010). Based on their equation (18) with
+% beta = 0.
+%
+% Inputs:
+%   X:       FxTxC tensor of complex input spectrograms for each channel, c
+%   M:       FxT matrix of the mask for the target source, entries between 0 and and 1
+%   Ncov:    estimated noise covariances or empty to estimate using the mask
+%   Scov:    estimated target covariances or empty to estimate from the mixture
+%   regulN:  regularization for covariance inversion, leave at default
+%   refMic:  microphone used as reference for reconstruction
+%   eyeCoef: how much of the identity to subtract from estimated mix stats
+%            1 implements Souden et al's method, 0 might work better
+%
+% Outputs:
+%   Y: FxT matrix of estimated complex spectrum of target
 
 [F T C] = size(X);
 wlen = 2*(F-1);
