@@ -6,7 +6,7 @@ workshop and for the OSU submission to CHiME3.
 
 The actual MESSL code is in the [main MESSL repo](http://github.com/mim/messl).
 
-## Examples of running this using SLURM on OSU's cluster
+## Examples of running this on OSU's cluster
 
 Step 1: Run MESSL
 ```matlab
@@ -22,3 +22,21 @@ Step 2b: Replay MESSL, version 2: Mask-based noise estimate, Souden-based "steer
 ```matlab
 enhance_wrapper(@(X,fail,fs,file) stubI_replayMessl(X,fail,fs,file,'~/data1/chime3/out/messlMcMvdrMrf.2Hard5Lbp4Slate/data/','','souden','','mask',1), '/data/corpora/chime3/CHiME3/data/audio/16kHz/isolated/', '~/data1/chime3/out/replaySlateXcMaskSouden', [1 1], 0, 1, 1);
 ```
+
+## Calculate big delay between ch0 and other channels for simulated training data et05 only
+```
+cd /homes/3/mandelm/code/matlab/messlJsalt15
+enhance_wrapper(@stubI_justXcorr, '/data/corpora/chime3/CHiME3/data/audio/16kHz/isolated/', '~/data1/chime3/xcorr', [1 1], 0, 0, 2, 'et05.*simu.*\.CH1\.wav$');
+```
+
+## Fix big delay between ch0 and other channels, et05 only
+```matlab
+conds = {'et05_bus', 'et05_caf', 'et05_ped', 'et05_str'}; for c=1:length(conds), correctCh0Delay(fullfile('/data/corpora/chime3/CHiME3/data/audio/16kHz/isolated',[conds{c} '_simu']), fullfile('~/data1/chime3/xcorr/data', [conds{c} '_simu'])); end
+```
+
+## Run supervised MVDR using channel 0 
+
+```matlab
+enhance_wrapper(@(X,fail,fs,file) stubI_supervisedMvdr(X,fail,fs,file,0.75,0.85,15), '/data/corpora/chime3/CHiME3/data/audio/16kHz/isolated/', '~/data1/chime3/out/sup75m85a15db/', [1 1], 0, 0, 2, '[de]t05.*simu.*\.CH1\.wav$');
+```
+
