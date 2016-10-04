@@ -20,6 +20,8 @@ outMaskDir = strcat(workDir,'/mask/');
 if exist(corrDir,'dir')==7 || exist(outDir,'dir')==7
     error('Temporary directories should not already exist');
 end
+
+try
 % Find the correlations of CH0 with CH* files
 enhance_wrapper(@stubI_justXcorr, workDir, corrDir, [1 1], 0, 0, 2, '.CH1');
 
@@ -31,8 +33,15 @@ enhance_wrapper(@(X, fail, fs, file) stubI_supervisedMvdr(X, fail, fs, file, 0.7
     workDir, outDir, [1 1], 1, 0, 2, '.CH1'); 
 
 % compute and save masks based on cleaned audio
-enhance_wrapper(@(X,fail,fs,file) stubI_Masks(X, fail, fs, file, outDir, 'ideal_amplitude', 0.75, 0.85, 15), ...
+enhance_wrapper(@(X,fail,fs,file) stubI_Masks(X, file, outDir, 'ideal_amplitude'), ...
     workDir, outMaskDir, [1 1], 1, 0, 2, '.CH1'); 
+catch
+    %remove temporary folders and files
+    rmdir(corrDir,'s');
+    rmdir(outDir,'s');
+    error('Error during mask creation');
+end  
 
+%remove temporary folders and files
 rmdir(corrDir,'s');
 rmdir(outDir,'s');
