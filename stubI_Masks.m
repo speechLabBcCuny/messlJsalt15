@@ -1,7 +1,10 @@
-function [Y data mask Xp] = stubI_Masks(X, fail, fs, inFile, mode, I, refMic, d, useHardMask, beamformer, varargin)
-    clean = audioread('/Users/Near/Desktop/MESSL/mvdr_test/dev2/output/wav/F01_22GC010A_BTH.wav');
+function [Y, data] = stubI_Masks(X, fail, fs, inFile, workDir, mode, I, refMic, d, useHardMask, beamformer, varargin)
+    %load ground truth wav file to clean
+    clean = audioread(strcat(workDir,'/wav/',strrep(inFile, '.CH1', '')));
+    %compute the spectrogram of clean file
     C = stft_multi(clean.',1024);
     C = C(:,:,1);
+    % repeat the spectrogram 7 times for build 7 masks
     C2 = repmat(C,1,1,7);
     switch mode
         case 'ideal_amplitude'
@@ -11,9 +14,6 @@ function [Y data mask Xp] = stubI_Masks(X, fail, fs, inFile, mode, I, refMic, d,
         case 'ideal_complex'
             data.mask = X./C2;
     end
-    Xp = zeros(size(X,1), size(X,2), size(data.mask,3));
-for s = 1:size(data.mask,3)
-        % No MVDR, pick a random channel
-        Xp(:,:,s) = X(:,:,1);
+    % clean speech is just C;
+    Y=C;
 end
-Y = Xp .* data.mask;
