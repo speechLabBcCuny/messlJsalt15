@@ -14,11 +14,11 @@ function [Y, data] = stubI_Masks(X, inFile, workDir, mode)
 %     2015 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP).
     switch mode
         case 'ideal_amplitude'
-            data.mask = abs(X)./abs(C2);
+            data.mask = lim(abs(db2mag(5)*C2)./abs(X), 0,1);
         case 'phase_sensitive'
-            data.mask = real(X./C2);
+            data.mask = lim(db2mag(5)*real(C2./X), -1, 1);
         case 'ideal_complex'
-            data.mask = X./C2;
+            data.mask = db2mag(5)*C2./X;
     end
     % clean speech is just C;
     Y=C;
