@@ -1,4 +1,4 @@
-function [Y data] = stubI_supervisedMvdr(X, fail, fs, inFile, maskQuantile, adaptQuantile, maxSup_db, includeRef)
+function [Y data] = stubI_supervisedMvdr(X, fail, fs, inFile, maskQuantile, adaptQuantile, maxSup_db, includeRef, vis)
 
 % Load a MESSL mask and TDOA and apply it to the input the same way
 % stubI_messlMc would.
@@ -7,6 +7,7 @@ if ~exist('maskQuantile', 'var') || isempty(maskQuantile), maskQuantile = 0.6; e
 if ~exist('adaptQuantile', 'var') || isempty(adaptQuantile), adaptQuantile = 0.8; end
 if ~exist('maxSup_db', 'var') || isempty(maxSup_db), maxSup_db = -40; end
 if ~exist('includeRef', 'var') || isempty(includeRef), includeRef = false; end
+if ~exist('vis', 'var') || isempty(vis), vis = false; end
 
 Scov = [];
 Ncov = [];
@@ -32,7 +33,10 @@ data.mask = mask;
 
 % Output spectrogram(s)
 Y = Xp .* mask;
-subplots({lim(db(Xp(:,:,1)), -100, 0), mask(:,:,1), adapt(:,:,1)}, [1 -1])
-drawnow
+
+if vis
+    subplots({lim(db(Xp(:,:,1)), -100, 0), mask(:,:,1), adapt(:,:,1)}, [1 -1])
+    drawnow
+end
 1+1;
 
