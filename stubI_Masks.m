@@ -1,6 +1,5 @@
 function [Y, data] = stubI_Masks(X, inFile, workDir, mode)
     %load ground truth wav file to variable "clean"
-    print inFile;
     clean = audioread(strcat(workDir,'/wav/',strrep(inFile, '.CH1', '')));
     %compute the spectrogram of clean file
     C = stft_multi(clean.',1024);
