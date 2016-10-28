@@ -6,7 +6,7 @@ for f = 1:length(files)
     fprintf('%d: %s\n', f, files{f});
     
     wavFile = fullfile(wavDir, files{f});
-    bakFile = fullfile(wavDir, strrep(files{f}, 'CH0.', 'CH0_nodelay.'));
+    bakFile = fullfile(wavDir, strrep(files{f}, 'CH0.', 'CH0_origdelay.'));
     dataFile = fullfile(dataDir, strrep(files{f}, 'CH0.wav', 'mat'));
 
     if ~exist(dataFile, 'file')

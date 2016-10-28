@@ -1,4 +1,4 @@
-function enhance_wrapper(stubFn, inDir, outDir, part, overwrite, ignoreErrors, filePerChan, inFilesOrPattern)
+function enhance_wrapper(stubFn, inDir, outDir, part, overwrite, ignoreErrors, filePerChan, inFilesOrPattern, normalizeOutput)
 
 % Wrapper like for CHiME3, but working with arbitrary multichannel wavsxs
 %
@@ -27,6 +27,7 @@ if ~exist('part', 'var') || isempty(part), part = [1 1]; end
 if ~exist('ignoreErrors', 'var') || isempty(ignoreErrors), ignoreErrors = false; end
 if ~exist('filePerChan', 'var') || isempty(filePerChan), filePerChan = false; end
 if ~exist('inFilesOrPattern', 'var'), inFilesOrPattern = ''; end
+if ~exist('normalizeOutput', 'var') || isempty(normalizeOutput), normalizeOutput = false; end
 
 % Define hyper-parameters
 pow_thresh=-20; % threshold in dB below which a microphone is considered to fail
@@ -131,9 +132,13 @@ for f = part(1):part(2):length(inFiles)
     
     % Inverse STFT and write WAV file with one source per channel
     y = istft_multi(Y, nsampl).';
-    y = y * 0.999/max(abs(y(:)));
+
+    if normalizeOutput
+        y = y * 0.999/max(abs(y(:)));
+    end
+    
     ensureDirExists(outWavFile);
     audiowrite(outWavFile, y, fs);
     ensureDirExists(outMaskFile);
-    save(outMaskFile, 'data', 'fs', 'nbin', 'nfram', 'nsampl', 'fail');
+    save(outMaskFile, 'data', 'fs', 'nbin', 'nfram', 'nsampl', 'fail', 'normalizeOutput');
 end
