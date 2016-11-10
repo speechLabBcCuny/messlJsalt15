@@ -1,5 +1,13 @@
 Collection of functions to help in the use of Keras.  
 
+Recommended usage:  
+```python
+import messlkeras as mk
+```  
+Currently does not support `from messlkeras import *` .  
+
+The following functions will be available in the module's namespace, ex: `mk.prep_data_SM(...)`
+
 ```python
 def prep_data_SM(spects_list, masks_list, input_shape=(100, 50, 513), start=0):
     ### prepares the data for Keras
