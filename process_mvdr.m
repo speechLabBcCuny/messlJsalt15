@@ -1,4 +1,4 @@
-% Use this script to create masks for the CHiMe3 data. For each 7 channel
+% Use this script to create cleaned speech for the CHiMe3 data. For each 7 channel
 % utterance, it will create a clean audio wav file and compute the masks
 % between the clean audio and each of 7 channel utterance.
 
