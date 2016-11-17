@@ -8,7 +8,7 @@ addpath('../utils');
 
 % working direction
 % contain wav files for each channel for one 
-workDir = '/Users/Near/Desktop/MESSL/mvdr_test/dev2/';
+workDir = '/Users/Near/Desktop/MESSL/mvdr_test/dev/';
 % Calculate delay between CH0 and the others
 corrDir = strcat(workDir,'/corr/'); %temporary
 corrDataDir = strcat(corrDir,'/data/');
@@ -17,7 +17,7 @@ outDir = strcat(workDir,'/out/'); %temporary
 % directory to save the masks
 outMaskDir = strcat(workDir,'/mask/');
 
-mode = 'ideal_complex';
+mode = 'ideal_amplitude';
 try
 % compute and save masks based on cleaned audio
 enhance_wrapper(@(X,fail,fs,file) stubI_Masks(X, file, outDir, mode), ...

@@ -8,7 +8,7 @@ addpath('../utils');
 
 % working direction
 % contain wav files for each channel for one 
-workDir = '/Users/Near/Desktop/MESSL/mvdr_test/dev2/';
+workDir = '/Users/Near/Desktop/MESSL/mvdr_test/dev/';
 % Calculate delay between CH0 and the others
 corrDir = strcat(workDir,'/corr/'); %temporary
 corrDataDir = strcat(corrDir,'/data/');
