@@ -8,25 +8,16 @@ addpath('../utils');
 
 % working direction
 % contain wav files for each channel for one 
-workDir = '/Users/Near/Desktop/MESSL/mvdr_test/dev/';
-% Calculate delay between CH0 and the others
-corrDir = strcat(workDir,'/corr/'); %temporary
-corrDataDir = strcat(corrDir,'/data/');
-% directory to save cleaned (MVDR) wav
-outDir = strcat(workDir,'/out/'); %temporary
-% directory to save the masks
-outMaskDir = strcat(workDir,'/mask/');
+workDir = '/home/data/CHiME3/data/audio/16kHz/isolated/';
+% directory to save cleaned wav
+wavDir = '/home/data/CHiME3/data/audio/16kHz/local/messl-mvdr-output';
 
-mode = 'clean';
+outDir = '/home/data/CHiME3/data/audio/16kHz/local/clean-spect/'; %temporary
 try
 % compute and save masks based on cleaned audio
-enhance_wrapper(@(X,fail,fs,file) stubI_Masks(file, outDir), ...
-    workDir, strcat(outMaskDir,'/',mode,'/'), [1 1], 1, 0, 2, '.CH1'); 
+enhance_wrapper(@(X,fail,fs,file) stubI_Clean(file, wavDir), ...
+    workDir, outDir, [1 1], 1, 0, 2, '.*05.*real.*\.CH1\.wav'); 
 catch
     %remove temporary folders and files
     error('Error during mask creation');
 end  
-
-%remove temporary folders and files
-%rmdir(corrDir,'s');
-%rmdir(outDir,'s');
