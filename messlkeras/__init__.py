@@ -1,8 +1,6 @@
 ## Matlab style file organization, one function per file
 
-from prep_data_SpMa import prep_data_SpMa
-from prep_CHIME_lists import prep_CHIME_lists
-
-
+from prep_data_for_keras import prep_data_for_keras
+from prep_list_for_keras import prep_list_for_keras
 
 __version__ = '0.1'
