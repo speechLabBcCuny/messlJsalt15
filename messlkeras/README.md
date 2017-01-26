@@ -17,11 +17,13 @@ prep_list_for_keras(data_dir, reg_exp):
     # so only .mat in directories with that pattern will beadded to the list
 	# returns a list
 
-prep_data_for_keras(file_list, input_shape=(100, 50, 513), start=0):
+prep_data_for_keras(file_list, input_shape=(-1, 50, 513), start=0, time_limit=180):
     ### prepares the data for Keras, using CHIME3 data only!
     # file_list details with .mat files to load (created by prep_list_for_keras)
     # input_shape will define the shape of the data: (sample_num, input_length, features) (must all be positive)
+	# input_shape[0]=-1 means that b default it will load all the files in the file_list, time permitting
     # start=n allows the user to start later in the lists
-	# returns a numpy.ndarray of shape input_shape
+    # time_limit puts on cap on how long the process should take, in seconds. default is 3 minutes
+    # returns a numpy.ndarray of shape input_shape
 
 ```
