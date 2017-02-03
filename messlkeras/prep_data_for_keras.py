@@ -93,9 +93,9 @@ def prep_data_for_keras(file_list, input_shape=(-1, 50, 513), start=0, time_limi
 
         # add to arrays to return
         if keras_data is None:
-            keras_data = temp_keras_data
+            keras_data = [temp_keras_data]
         else:
-            keras_data = np.concatenate((keras_data, temp_keras_data), axis=0)
+            keras_data.append(temp_keras_data)
 
         # check if we are done
         if sample_num>0 and len(keras_data) >= sample_num: break
@@ -107,9 +107,11 @@ def prep_data_for_keras(file_list, input_shape=(-1, 50, 513), start=0, time_limi
         time_used = time.clock() - start_time
 
     # return the files in the right format
-    if keras_data is None:
+    if len(keras_data) == 0:
         return (None, 0)
     else:
+		# concatenate
+        keras_data = np.concatenate(keras_data, axis=0)
         if sample_num>0:
             keras_data = keras_data[:sample_num]
         if len(keras_data) < sample_num:
