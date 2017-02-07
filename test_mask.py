@@ -26,5 +26,5 @@ for test_file in test_list:
     mask = np.mean(test_output,axis=0)
     #save the mask to mat file
     save_dir = test_file.replace("messl-spects-noisy", "lstm-predicted-mask")
-    sio.savemat(, {'mask': mask})
+    sio.savemat(save_dir, {'mask': mask})
 print "finish"
