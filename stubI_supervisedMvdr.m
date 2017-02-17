@@ -25,7 +25,7 @@ end
 [Xp mvdrMask adapt] = mvdrSoudenMulti(X, adapt, fail, Ncov, Scov, 0);
 data.mvdrMask = single(mvdrMask);
 
-mask = cat(3, mask, ones(size(mask)));
+%mask = cat(3, mask, ones(size(mask)));
 
 maxSup = 10^(-maxSup_db / 20);
 mask = max(mask, maxSup);
