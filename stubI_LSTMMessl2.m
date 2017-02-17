@@ -14,10 +14,10 @@ if ~exist('combineOpt') || isempty(combineOpt), combineOpt = 'average'; end
 
 
 %inFile is the filename for the auido file, so make use of it to find LSTM mask file.
-lstm_file = fullfile(lstm_dir,inFile)
+lstm_file = fullfile(lstm_dir, regexprep(inFile, '(\.CH1)?\.wav$', '.mat'));
 % six masks need to combine to one mask
 LSTM_Mask = load(lstm_file);   %something like this
-
+LSTM_Mask = LSTM_Mask.mask.';
 
 wlen = 2*(size(X,1)-1);
 M = sum(~fail);
@@ -27,7 +27,7 @@ refFile = fullfile(loadDataDir, regexprep(inFile, '(\.CH1)?\.wav$', '.mat'));
 d = load(refFile);
 
 if strcmp(tdoaSrc, 'ipd') || strcmp(ncovSrc, 'ipd')
-    tau = tauGrid(d_m, fs, 31);          % Brittle
+tau = tauGrid(d_m, fs, 31);          % Brittle
     covs = covsFromIpdParams(X, d.data.params.ipdParams, M, tau, fs);
     assert(~any(isnan(covs(:))))
 end
@@ -70,15 +70,15 @@ end
 
 %Mix the MESSL mask with LSTM mask
 %Or there could be multi options for the mixture, such as average, max, min 
-switch combineOpt
-    case 'average'
-        mask = mean(LSTM_Mask,mask);
-    case 'max'
-        mask = max(LSTM_Mask,mask);
-    case 'mim'
-        mask = min(LSTM_Mask,mask);
-
 mask = d.data.mask(:,:,1:min(I,end));
+switch combineOpt                                                                                                                     
+    case 'average'                                                                                                                    
+        mask = (LSTM_Mask+mask)/2;                                                                                                   
+    case 'max'                                                                                                                        
+        mask = max(LSTM_Mask,mask);                                                                                                   
+    case 'mim'                                                                                                                        
+        mask = min(LSTM_Mask,mask);                                                                                                   
+end;
 data.origDataFile = refFile;
 switch beamformer
     case 'mic1'
@@ -105,8 +105,8 @@ mask = max(mask, maxSup);
 
 
 
-data.mask2 = mask;
-
+data.mask = mask;
+data.params = d.data.params;
 % Output spectrogram(s)
 Y = Xp .* mask;
 %subplots({db(Xp(:,:,1)), mask(:,:,1)})
