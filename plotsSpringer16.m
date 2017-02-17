@@ -3,7 +3,7 @@ function plotsSpringer16(toDisk, startAt)
 if ~exist('toDisk', 'var') || isempty(toDisk), toDisk = false; end
 if ~exist('startAt', 'var') || isempty(startAt), startAt = 0; end
 
-outDir = '~/work/papers/springer16/mandel/';
+outDir = '~/work/papers/springer16/extraFigs/bwFriendly/';
 
 prt('ToFile', toDisk, 'StartAt', startAt, ...
     'Width', 4, 'Height', 3, 'NumberPlots', 0, ...
@@ -15,8 +15,8 @@ inDir = '/home/mim/work/talks/sane-2015-10-22/jsaltWavs/';
 hop_s = 0.016;
 fs = 16000;
 maxFreq = 8000;
-cmap = easymap('bcyr', 255);
-cax = [-80 10];
+cmap = easymap('kryw', 510);
+cax = [-66 24];
 
 [~,inFiles] = findFiles(inDir, '.*.wav');
 for f = 1:length(inFiles)
