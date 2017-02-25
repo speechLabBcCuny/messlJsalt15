@@ -1,8 +1,7 @@
-function [Y data mask Xp] = stubI_LSTMMessl3(X, fail, fs, inFile, I, refMic, d, useHardMask, beamformer, varargin, lstm_dir)
+function [Y data mask Xp] = stubI_LSTMMessl3(X, fail, fs, inFile, I, refMic, d, useHardMask, beamformer, lstm_dir, varargin)
 
 % Multichannel MESSL mask with simple beamforming initialized from cross
 % correlations between mics.
-
 if ~exist('I', 'var') || isempty(I), I = 1; end
 if ~exist('refMic', 'var') || isempty(refMic), refMic = 0; end
 if ~exist('d', 'var') || isempty(d), d = 0.35; end
@@ -16,12 +15,14 @@ if useHardMask && (isempty(ind) || (varargin{ind+1} == 0))
 end
 
 %inFile is the filename for the auido file, so make use of it to find LSTM mask file.
-lstm_file = fullfile(lstm_dir,inFile)
-% six masks are already combined in one single mask in python
-%load the lstm mask
-LSTM_Mask = load(lstm_file);
-
-
+lstm_file = fullfile(lstm_dir, regexprep(inFile, '(\.CH1)?\.wav$', '.mat'));
+% six masks need to combine to one mask
+LSTM_Mask = load(lstm_file);   %something like this
+LSTM_Mask = LSTM_Mask.mask.';
+LSTM_Mask = LSTM_Mask(:,:,1);
+LSTM_Mask = repmat(LSTM_Mask,1,1,2);
+LSTM_Mask(:,:,2) = 1 - LSTM_Mask(:,:,1);
+LSTM_Mask = LSTM_Mask(2:end-1,:,:);
 maxSup_db = -40;
 
 maxSup = 10^(maxSup_db/20);

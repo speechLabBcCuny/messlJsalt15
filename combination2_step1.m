@@ -1,18 +1,24 @@
 addpath('../mimlib');
 addpath('../messl');
 addpath('../utils');
+
+%option for combination
+combination_option = 'min';
+
+
 workDir = '/home/data/CHiME3/data/audio/16kHz/isolated/';
-outDir = '/scratch/near/combination2/';
-lstm_dir = '/scratch/near/test_prediction/';
-%outDir = '/home/data/CHiME3/data/audio/16kHz/local/clean-spect/'; %temporary
+outDir = '/scratch/near/CHiME3/lstm_messl/min/';
+lstm_dir = '/scratch/near/CHiME3/lstm_output/';
 
 %first create messl masks in local directory
-
+messl_dir = '/scratch/mim/chime3/messlMcMvdrMrf.2Hard5Lbp4Slate/data/';
 
 
 
 
 %then combine the masks with lstm mask
 enhance_wrapper(@(X, fail, fs, file) stubI_LSTMMessl2(X, fail, fs, file, ...
-						      '/scratch/mim/chime3/messlMcMvdrMrf.2Hard5Lbp4Slate/data/', '', 'souden', 'ipd', 'mask', 1,'','',lstm_dir,'average'), ...
-workDir, outDir, [1 1], 0, 1, 1,'.dt05.*simu.*\.CH1\.wav',0); 
+    messl_dir, '', 'souden', 'ipd', 'mask', 1,'','',lstm_dir,combination_option), ...
+    workDir, outDir, [5 5], 1, 1, 1,'.[de]t05.*\.CH1\.wav',0);
+
+fprintf('Combining LSTM with MESSL, average option');
