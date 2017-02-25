@@ -1,0 +1,25 @@
+addpath('../../mimlib');
+addpath('../../utils');
+estimate_dir = '/scratch/mim/chime3/messlMcMvdrMrf.2Hard5Lbp4Slate/wav/';
+%estimate_dir = '/home/data/CHiME3/data/audio/16kHz/isolated/';
+%estimate_dir = '/scratch/near/CHiME3/replayMessl/min/wav/';
+%estimate_dir = '/scratch/near/CHiME3/lstm_wav/';
+ref_dir = '/scratch/near/CHiME3/v2/mvdr_output/wav/';
+estimate_list = findFiles(estimate_dir,'et05.*simu.*\.wav');
+ref_list = findFiles(ref_dir,'et05.*simu.*\.wav');
+result = 0.0;
+for f = 1:length(estimate_list)
+    estimate_file = fullfile(estimate_dir,estimate_list{f});
+    ref_file = fullfile(ref_dir,ref_list{f});
+    %estname = strsplit(estimate_list{f},'CH5.wav');
+    %estname = estname{1};
+    %refname = strsplit(ref_list{f},'wav');
+    %refname = refname{1};
+    %assert(strcmp(estname, refname));
+    pval = pesq(ref_file,estimate_file,160);
+    fprintf('pval: %f\n',pval);
+    result = result + pval;
+end;
+result = result/length(estimate_list);
+fprintf('et simu messl\n');
+fprintf('average pval: %f',result);
