@@ -77,7 +77,11 @@ switch combineOpt
     case 'max'                                                                                                                        
         mask = max(LSTM_Mask,mask);                                                                                                   
     case 'mim'                                                                                                                        
-        mask = min(LSTM_Mask,mask);                                                                                                   
+        mask = min(LSTM_Mask,mask);
+    case 'messl'
+        mask = mask;
+    case 'lstm'
+        mask = LSTM_Mask;
 end;
 data.origDataFile = refFile;
 switch beamformer
