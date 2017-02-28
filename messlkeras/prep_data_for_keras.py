@@ -9,7 +9,7 @@ import scipy.io as sio
 import time
 
 
-def prep_data_for_keras(file_list, input_shape=(-1, 50, 513), start=0, time_limit=180):
+def prep_data_for_keras(file_list, input_shape=(-1, 50, 513), start=0, time_limit=180, verbose=False):
     ### prepares the data for Keras, using CHIME3 data only!
     # file_list details with .mat files to load (created by prep_list_for_keras)
     # input_shape will define the shape of the data: (sample_num, input_length, features) (must all be positive)
@@ -35,7 +35,7 @@ def prep_data_for_keras(file_list, input_shape=(-1, 50, 513), start=0, time_limi
 
     for filename in file_list[start:]:
 
-        print "working on", filename
+        if verbose: print "working on", filename
 
         # check amount of time used, and exit if time exceeds limit (will cause problem with other loaded data, no point continuing)
         if time_used >= time_limit:
