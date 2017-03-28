@@ -9,13 +9,15 @@ import scipy.io as sio
 import time
 
 
-def prep_data_for_keras(file_list, input_shape=(-1, 50, 513), start=0, time_limit=180, verbose=False):
+def prep_data_for_keras(file_list, input_shape=(-1, 50, 513), start=0, chan2keep='nan', time_limit=180, verbose=False):
     ### prepares the data for Keras, using CHIME3 data only!
     # file_list details with .mat files to load (created by prep_list_for_keras)
     # input_shape will define the shape of the data: (sample_num, input_length, features) (must all be positive)
 	# input_shape[0]=-1 means that b default it will load all the files in the file_list, time permitting
     # start=n allows the user to start later in the lists
     # time_limit puts on cap on how long the process should take, in seconds. default is 3 minutes
+    # chan2keep: in cases where the data is 2 channels, needs to specify which to keep. Should have value 0 or 1. Not required in other cases.
+
     # returns a numpy.ndarray of shape input_shape
 
     # check if shape is incorrect
@@ -62,10 +64,13 @@ def prep_data_for_keras(file_list, input_shape=(-1, 50, 513), start=0, time_limi
             # normal case of 6 noisy channels spectrograms/masks
             pass
         elif nb_channels == 2:
-            # spectrograms from stereo files, currently mvdr-beamformfiles.
-            # default: keep only the second one.
+            # spectrograms from stereo files, currently mvdr-beamformfiles. keep chan 1 (ie the second channel)
+            # OR masks from messls. keep chan 0
             # replicate 6 times
-            loaded_data = loaded_data[:,:,1::2] #start at index one, progress by steps of size 2
+            if chan2keep not in [0,1]:
+                raise Exception("2 channels found in .mat file. Please Specify chan2keep = 0 or 1. Exiting")
+            else:
+                loaded_data = loaded_data[:,:,chan2keep::2] #start at index one, progress by steps of size 2
             # duplicate for each 6 channels of chime3
             loaded_data = np.tile(loaded_data, (1, 1, 6))
             nb_channels = 6
