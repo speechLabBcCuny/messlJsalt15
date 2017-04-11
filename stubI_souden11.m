@@ -33,7 +33,7 @@ alpha_p = 0.6;
 
 K1 = 15;
 
-syms x;
+%syms x;
 L = 32;
 psi_0 = 18.1;
 psi_tilde_0 = 28.85;
