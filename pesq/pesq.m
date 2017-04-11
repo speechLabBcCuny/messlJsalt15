@@ -40,7 +40,7 @@ end;
 global Downsample DATAPADDING_MSECS SEARCHBUFFER Fs WHOLE_SIGNAL
 global Align_Nfft Window
 
-[ref_data,sampling_rate,nbits]= wavread( ref_wav);
+[ref_data,sampling_rate]= audioread(ref_wav);
 if sampling_rate~=8000 & sampling_rate~=16000
     error('Sampling frequency needs to be either 8000 or 16000 Hz');
 end
@@ -65,7 +65,7 @@ ref_Nsamples= length( ref_data)+ 2* SEARCHBUFFER* Downsample;
 ref_data= [zeros( 1, SEARCHBUFFER* Downsample), ref_data, ...
     zeros( 1, DATAPADDING_MSECS* (Fs/ 1000)+ SEARCHBUFFER* Downsample)];
 
-deg_data= wavread( deg_wav);
+deg_data= audioread( deg_wav);
 deg_data= deg_data';
 deg_data= deg_data* 32768;
 deg_Nsamples= length( deg_data)+ 2* SEARCHBUFFER* Downsample;
