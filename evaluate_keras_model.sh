@@ -17,7 +17,7 @@ echo "$result_dir"
 #2 generate the audio files by applying the masks
 lstm_mask_dir="$result_dir""/masks/"
 audio_dir="$result_dir""/audios/"
-matlab -r "generate_audio_from_masks('$combination_option', '$lstm_mask_dir', '$audio_dir',1,5)" &
+matlab -r "job = batch(generate_audio_from_masks('$combination_option', '$lstm_mask_dir', '$audio_dir'),'Pool',10)"
 # matlab generate_audio($combination_option, "$lstm_mask_dir", result_dir, audio_dir,2,5) &
 # matlab generate_audio($combination_option, "$lstm_mask_dir", result_dir, audio_dir,3,5) &
 # matlab generate_audio($combination_option, "$lstm_mask_dir", result_dir, audio_dir,4,5) &

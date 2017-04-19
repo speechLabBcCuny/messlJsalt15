@@ -1,4 +1,4 @@
-function a = generate_audio_from_masks(combination_option, lstm_mask_dir, audio_dir,part,parts)
+function a = generate_audio_from_masks(combination_option, lstm_mask_dir, audio_dir)
 
 addpath('../mimlib');
 addpath('../messl');
@@ -16,6 +16,8 @@ messl_dir = '/scratch/mim/chime3/messlMcMvdrMrf.2Hard5Lbp4Slate/data/';
 
 
 %then combine the masks with lstm mask
+parfor i = 1:10
 enhance_wrapper(@(X, fail, fs, file) stubI_LSTMMessl2(X, fail, fs, file, ...
-    messl_dir, '', 'souden', '', 'mask', 1,9,'',lstm_mask_dir,combination_option),workDir, audio_dir, [part, parts], 1, 1, 1,'.[de]t05((?!bth).)*\.CH1\.wav',1);
+    messl_dir, '', 'souden', '', 'mask', 1,9,'',lstm_mask_dir,combination_option),workDir, audio_dir, [i, 10], 1, 1, 1,'.[de]t05((?!bth).)*\.CH1\.wav',1);
 fprintf('Combining LSTM with MESSL, %s option', combination_option);
+end
