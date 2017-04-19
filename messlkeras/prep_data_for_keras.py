@@ -28,6 +28,8 @@ def prep_data_for_keras(file_list, input_shape=(-1, 50, 513), start=0, chan2keep
     if input_shape[2] != 513:
         raise Exception("feature number different than CHIME3 normal of 513! Exiting.")
 
+    pos_to_insert = 0
+
     num_proc_files = 0
 
     keras_data = None
@@ -94,16 +96,21 @@ def prep_data_for_keras(file_list, input_shape=(-1, 50, 513), start=0, chan2keep
 
         # reshape to keras desired shape
         # -1 allows for automatic dimension calculation
-        temp_keras_data = loaded_data.reshape(-1, input_length, features)
+        loaded_data = loaded_data.reshape(-1, input_length, features)
+
 
         # add to arrays to return
         if keras_data is None:
-            keras_data = [temp_keras_data]
-        else:
-            keras_data.append(temp_keras_data)
+            # pre-allocate memory of correct type, only once
+            if sample_num < 0:
+                # fill with max
+                keras_data = np.zeros((1+2066520/input_length, input_length, features), dtype=loaded_data.dtype)
+            else:
+                keras_data = np.zeros(input_shape, dtype=loaded_data.dtype)
 
-        # check if we are done
-        if sample_num>0 and len(keras_data) >= sample_num: break
+        # insert in proper position
+        keras_data[pos_to_insert:pos_to_insert+len(loaded_data)] = loaded_data
+        pos_to_insert += len(loaded_data)
 
         # increment the number of processed files
         num_proc_files += 1
@@ -111,15 +118,16 @@ def prep_data_for_keras(file_list, input_shape=(-1, 50, 513), start=0, chan2keep
         # update time_used
         time_used = time.clock() - start_time
 
-    # return the files in the right format
-    if len(keras_data) == 0:
-        return (None, 0)
-    else:
-		# concatenate
-        keras_data = np.concatenate(keras_data, axis=0)
-        if sample_num>0:
-            keras_data = keras_data[:sample_num]
-        if len(keras_data) < sample_num:
-            warnings.warn("All files loaded but too many samples asked, returning as is!")
+        # check if we are done
+        if sample_num>0 and len(keras_data) >= sample_num: break
 
-        return (keras_data, num_proc_files)
+
+    # first, remove trailing zeros
+    keras_data.resize((pos_to_insert,input_length,features))
+    # return requested number of samples
+    if sample_num>0 and len(keras_data) >= sample_num:
+        keras_data.resize((sample_num,input_length,features))
+    if len(keras_data) < sample_num:
+        warnings.warn("All files loaded but too many samples asked, returning as is!")
+
+    return (keras_data, num_proc_files)

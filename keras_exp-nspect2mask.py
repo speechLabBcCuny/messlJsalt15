@@ -6,6 +6,7 @@
 # Does a naive (random) hyper parameter search
 
 # can be trained on ideal amplitude or phase sensitive ideal masks, or on spectrogram
+# or can continue experiments based on pre-trained models in a given folder
 
 # GOALS: Have this only save nspect2masks models
 
@@ -15,7 +16,7 @@ import sys
 import time
 import random
 
-from keras.models import Sequential
+from keras.models import Sequential, load_model
 from keras.layers import LSTM, Dense, Lambda, Merge
 from keras.layers.normalization import BatchNormalization
 from keras.layers.wrappers import TimeDistributed, Bidirectional
@@ -49,15 +50,21 @@ script_name = sys.argv[0]
 save_dir = sys.argv[1] #string, directory
 # should we train on ideal amplitude or phase sensitive masks, on the cleaned psectrogram (phase sensitive or not)
 exp_type = sys.argv[2] # string, shoud be either 'iaf' or 'psf' or 'msa' or 'psa'
-
+# folder containing the pre-trained models, may be empty
+try :
+    cont_folder = sys.argv[3]
+except:
+    cont_folder = ''
 
 print("Running experiment from script: ", script_name)
-start_time = time.strftime('%Y-%m-%d %T')
+start_time = time.strftime('%Y-%m-%d_%T')
 print("Start Time: ", start_time)
 
 print("Config: ")
 print("save dir: ", save_dir)
 print("exp type: ", exp_type)
+if cont_folder != '' :
+    print("pre-trained models location:", cont_folder)
 
 
 # create new experiment folder using timestamp
@@ -100,10 +107,10 @@ elif exp_type in ['msa', 'psa']:
 if [x.split('/')[-1] for x in input_list_dt] == [x.split('/')[-1] for x in target_list_dt]:
     print("Number of validation files:", len(input_list_dt))
 else:
-    raise Exception("Training Filenames do not match! Exiting")
+    raise Exception("Validation Filenames do not match! Exiting")
 
 
-# # make smaller for debugging
+# make smaller for debugging
 # size = 1
 # input_list_tr = input_list_tr[0:size]
 # target_list_tr = target_list_tr[0:size]
@@ -131,7 +138,7 @@ keras_targets_dt, _ = mk.prep_data_for_keras(target_list_dt, input_shape, start,
 
 #check that sizes match
 if keras_inputs_dt.shape == keras_targets_dt.shape:
-    print("Shape of training data:", keras_inputs_dt.shape)
+    print("Shape of validation data:", keras_inputs_dt.shape)
 else:
     raise Exception("Sample sizes do not match! Exiting.")
 
@@ -148,10 +155,19 @@ if exp_type == 'psa':
     theta = theta_y - theta_s
     keras_targets_dt = abs(keras_targets_dt)*np.cos(theta)
 
+# make sure spects are abs value
+keras_inputs_tr = abs(keras_inputs_tr)
+keras_inputs_dt = abs(keras_inputs_dt)
+if exp_type in ['msa', 'psa']:
+    keras_targets_tr = abs(keras_targets_tr)
+    keras_targets_dt = abs(keras_targets_dt)
+
 # make inputs proper size if needed
 if exp_type in ['msa', 'psa']:
     keras_inputs_tr = [keras_inputs_tr,keras_inputs_tr]
     keras_inputs_dt = [keras_inputs_dt,keras_inputs_dt]
+
+
 
 def new_random_nspect2mask_model():
     ## 1 - create the LSTM model: spect -> mask
@@ -167,7 +183,7 @@ def new_random_nspect2mask_model():
         layersizes.append( random.choice([256,512,1024,2048]) )
     bid_merge_mode = random.choice(['sum', 'mul', 'concat', 'ave'])
     activation = random.choice(['sigmoid', 'hard_sigmoid'])
-#     optimizer = random.choice(['SGD', 'RMSprop', 'Adam', 'Adamax', 'Nadam'])
+    # optimizer = random.choice(['SGD', 'RMSprop', 'Adam', 'Adamax', 'Nadam'])
     optimizer = 'RMSprop'
     config = [batch_norm_mode, numlayers, layersizes, bid_merge_mode, activation, optimizer] 
     # Hard code config if needed
@@ -177,7 +193,7 @@ def new_random_nspect2mask_model():
     # spect sequential model
     model_nspect2mask = Sequential()
     # conversion to dB  #
-    model_nspect2mask.add(TimeDistributed(Lambda(lambda x: K.log(K.abs(x))), input_shape=(None,feat_num))) 
+    model_nspect2mask.add(TimeDistributed(Lambda(lambda x: K.log(x)), input_shape=(None,feat_num))) 
     # normalize per feature per batch
     model_nspect2mask.add(BatchNormalization(mode=batch_norm_mode, axis=2, input_shape=(None,513)))
 
@@ -194,46 +210,98 @@ def new_random_nspect2mask_model():
     return [config, model_nspect2mask]
 
 
-# Run trials
-for trial_num in range(100)[1:]:
-    print("New Trial number ", trial_num)
+if cont_folder == '':
 
-    # callbacks
-    early_stopper = EarlyStopping(monitor='val_loss', min_delta=0.001, patience=10, verbose=0, mode='auto')
+    # Run trials
+    for trial_num in range(100)[1:]:
+        print("New Trial number ", trial_num)
 
-    # model_checker = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=True, save_weights_only=False, mode='auto', period=3)
+        # callbacks
+        early_stopper = EarlyStopping(monitor='val_loss', min_delta=0, patience=10, verbose=0, mode='auto')
+
+        callbacks = [early_stopper]
+
+        config, model_nspect2mask = new_random_nspect2mask_model()
+
+        # define the model to train
+        if exp_type in ['iaf', 'psf']:
+            model_to_train = model_nspect2mask
+        elif exp_type in ['msa', 'psa']:
+            # spect sequential model 2
+            model_nspect2 = Sequential()
+            # conversion to dB  #
+            model_nspect2.add(TimeDistributed(Lambda(lambda x: x), input_shape=(None,feat_num))) 
+            
+            model_to_train = Sequential()
+            model_to_train.add(Merge([model_nspect2, model_nspect2mask], mode='mul'))
+       
+            # use MSE as loss, same optimizer as nspect2mask
+            model_to_train.compile(optimizer=config[5], loss='mse')
+
+
+        hist = model_to_train.fit(keras_inputs_tr, keras_targets_tr, batch_size=64, nb_epoch=100, shuffle=True, verbose=2, validation_data=(keras_inputs_dt, keras_targets_dt), callbacks = callbacks)
+
+        print("Trial done.")
+        cur_time = time.strftime('%Y-%m-%d_%T')
+        print(cur_time)
+
+        exp_folder_path = newexp_folder_path
+        val_loss = hist.history['val_loss'][-1]
+        filepath = exp_folder_path + "/" + exp_type + "_model_"+cur_time+"_vl:"+str(val_loss)+".hdf5"
+        print("Saving nspect2mask model:", filepath)
+        model_nspect2mask.save(filepath)
+
+        print("Saving config of model")
+        with open(exp_folder_path + "/" + cur_time + "_config.txt", "w") as config_file:
+            config_file.write(str(config))
+else:
+
+    # improve pre-trained models
     
-    callbacks = [early_stopper]
+    for pre_trained_model_name in [f for f in os.listdir(cont_folder) if f.endswith('.hdf5')]:
 
-    config, model_nspect2mask = new_random_nspect2mask_model()
+        print("Working on pre-trained model:",pre_trained_model_name)
+        #load model
+        loaded_model = load_model(cont_folder+"/"+pre_trained_model_name)
+        # load config
+        config_file = open(cont_folder+"/"+pre_trained_model_name[10:29]+"_config.txt", 'r') 
+        config = config_file.read()
+        print("Config of pretrained model:", config) 
 
-    if exp_type in ['iaf', 'psf']:
-        model_to_train = model_nspect2mask
-    elif exp_type in ['msa', 'psa']:
-        # spect sequential model 2
-        model_nspect2 = Sequential()
-        # conversion to dB  #
-        model_nspect2.add(TimeDistributed(Lambda(lambda x: K.abs(x)), input_shape=(None,feat_num))) 
-        
-        model_to_train = Sequential()
-        model_to_train.add(Merge([model_nspect2, model_nspect2mask], mode='mul'))
-   
-        # for a mean squared error regression problem
-        model_to_train.compile(optimizer='RMSprop', loss='mse')
+        # callbacks
+        early_stopper = EarlyStopping(monitor='val_loss', min_delta=0, patience=10, verbose=0, mode='auto')
+
+        callbacks = [early_stopper]
+
+        # define the model to train
+        if exp_type in ['iaf', 'psf']:
+            model_to_train = loaded_model
+        elif exp_type in ['msa', 'psa']:
+            # spect sequential model 2
+            model_nspect2 = Sequential()
+            # conversion to dB  #
+            model_nspect2.add(TimeDistributed(Lambda(lambda x: x), input_shape=(None,feat_num))) 
+            
+            model_to_train = Sequential()
+            model_to_train.add(Merge([model_nspect2, loaded_model], mode='mul'))
+       
+            # use MSE as loss, same optimizer as nspect2mask
+            # optimizer = ### need to be fixed
+            model_to_train.compile(optimizer='RMSprop', loss='mse')
 
 
-    hist = model_to_train.fit(keras_inputs_tr, keras_targets_tr, batch_size=64, nb_epoch=100, shuffle=True, verbose=2, validation_data=(keras_inputs_dt, keras_targets_dt), callbacks = callbacks)
+        hist = model_to_train.fit(keras_inputs_tr, keras_targets_tr, batch_size=64, nb_epoch=100, shuffle=True, verbose=2, validation_data=(keras_inputs_dt, keras_targets_dt), callbacks = callbacks)
 
-    print("Trial done.")
-    cur_time = time.strftime('%Y-%m-%d %T')
-    print(cur_time)
+        print("Trial done.")
+        cur_time = time.strftime('%Y-%m-%d_%T')
+        print(cur_time)
 
-    exp_folder_path = newexp_folder_path
-    val_loss = hist.history['val_loss'][-1]
-    filepath = exp_folder_path + "/" + exp_type + "_model_"+cur_time+"_vl:"+str(val_loss)+".hdf5"
-    print("Saving nspect2mask model:", filepath)
-    model_nspect2mask.save(filepath)
+        exp_folder_path = newexp_folder_path
+        val_loss = hist.history['val_loss'][-1]
+        filepath = exp_folder_path + "/" + exp_type + "_model_"+cur_time+"_vl:"+str(val_loss)+".hdf5"
+        print("Saving nspect2mask model:", filepath)
+        loaded_model.save(filepath)
 
-    print("Saving config of model")
-    with open(exp_folder_path + "/" + cur_time + "_config.txt", "w") as config_file:
-        config_file.write(str(config))
+        print("Saving config of model")
+        with open(exp_folder_path + "/" + cur_time + "_config.txt", "w") as config_file:
+            config_file.write(str(config)) 
