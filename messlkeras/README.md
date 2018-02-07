@@ -1,4 +1,49 @@
-Collection of functions to help in the use of Keras.  
+This folder contains the work of Felix Grezes and Zhaoheng Ni on combining MESSL with Keras neural networks.  
+
+# Overview
+The code written aims to:
+ - train a neural network model to produce speech/noise masks  
+ TODO: add an example picture here  
+
+ - create enhanced audio files using the model+masks in combination with MESSL  
+
+ - extract PESQ, SRD, OPS, WER scores on the enhanced audio
+
+## experiment file structure
+Guide: if you trained a model named MODELNAME
+
+STRUCTURE:
+/home/prof/MESSLKERAS/CHiME3-Exps
+|
+/MODELNAME-exp/ (unique, descriptive named)
+|
+|--- MODELNAME.weights (keras file) (name is timestamp)
+|--- MODELNAME.architecture (keras file)
+|--- MODELNAME.description.txt (english)
+|--- /keras-masks (masks computed from just the MODELNAME Keras model)
+    |
+    |--- masks (for all 6 channels for all dataset)  (follows structure of original corpus)
+|
+|--- /combination methods dir/ (descriptive name. for ex: AVE-PRE-COMBO)
+    |
+    |--- combination_description.txt (english)
+    |--- /results on corpus dir/ (CHIME3 or AMI or other)
+        |
+        |--- /model+messl masks/ (follows structure of original corpus)
+        |
+        |--- /model+messl enhanced wav dir/ (follows structure of original corpus)
+                (output of beamforming using our model+messl masks)
+        |
+        |--- /PESQ scores dir/ (follows structure of enhanced file dir)
+        |
+        |--- /SDR scores dir/ (follows structure of enhanced file dir)
+        |
+        |--- /OPS scores dir/ (follows structure of enhanced file dir)
+        |
+        |--- /WER scores and transcripts dir/ (follows structure of enhanced file dir)
+
+## messlkeras library documentation
+ List of functions to help in the use of Keras.  
 
 Recommended usage:  
 ```python
@@ -6,6 +51,7 @@ import messlkeras as mk
 ```  
 Currently does not support `from messlkeras import *` .  
 
+### list of messl keras functions
 The following functions will be available in the module's namespace, ex: `mk.prep_data_for_keras(...)`
 
 ```python

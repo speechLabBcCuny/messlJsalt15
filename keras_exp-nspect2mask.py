@@ -21,10 +21,10 @@ from keras.layers import LSTM, Dense, Lambda, Merge
 from keras.layers.normalization import BatchNormalization
 from keras.layers.wrappers import TimeDistributed, Bidirectional
 from keras.callbacks import EarlyStopping, ModelCheckpoint
-from keras.backend.tensorflow_backend import set_session
 from keras import backend as K
 
 import tensorflow as tf
+from keras.backend.tensorflow_backend import set_session
 config = tf.ConfigProto()
 config.gpu_options.allow_growth=True
 config.allow_soft_placement=True
@@ -37,7 +37,9 @@ import scipy as sp
 
 import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"   
-os.environ["CUDA_VISIBLE_DEVICES"]="1" # desired GPU
+GPU = "1"
+print ("Running script on GPU", GPU)
+os.environ["CUDA_VISIBLE_DEVICES"]=GPU # desired GPU
 
 import messlkeras as mk
 
@@ -148,19 +150,19 @@ if exp_type == 'psa':
     theta_y = np.angle(keras_inputs_tr)
     theta_s = np.angle(keras_targets_tr)
     theta = theta_y - theta_s
-    keras_targets_tr = abs(keras_targets_tr)*np.cos(theta)
+    keras_targets_tr[:] = abs(keras_targets_tr)*np.cos(theta)
 
     theta_y = np.angle(keras_inputs_dt)
     theta_s = np.angle(keras_targets_dt)
     theta = theta_y - theta_s
-    keras_targets_dt = abs(keras_targets_dt)*np.cos(theta)
+    keras_targets_dt[:] = abs(keras_targets_dt)*np.cos(theta)
 
 # make sure spects are abs value
-keras_inputs_tr = abs(keras_inputs_tr)
-keras_inputs_dt = abs(keras_inputs_dt)
+keras_inputs_tr[:] = abs(keras_inputs_tr)
+keras_inputs_dt[:] = abs(keras_inputs_dt)
 if exp_type in ['msa', 'psa']:
-    keras_targets_tr = abs(keras_targets_tr)
-    keras_targets_dt = abs(keras_targets_dt)
+    keras_targets_tr[:] = abs(keras_targets_tr)
+    keras_targets_dt[:] = abs(keras_targets_dt)
 
 # make inputs proper size if needed
 if exp_type in ['msa', 'psa']:
@@ -209,7 +211,7 @@ def new_random_nspect2mask_model():
 
     return [config, model_nspect2mask]
 
-
+# Run experiments
 if cont_folder == '':
 
     # Run trials
@@ -304,4 +306,7 @@ else:
 
         print("Saving config of model")
         with open(exp_folder_path + "/" + cur_time + "_config.txt", "w") as config_file:
-            config_file.write(str(config)) 
+            config_file.write(str(config))
+
+# EOF
+print("End of  script: ", script_name)
