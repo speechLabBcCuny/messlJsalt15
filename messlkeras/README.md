@@ -12,7 +12,7 @@ The code written aims to:
 ## experiment file structure
 Guide: if you trained a model named MODELNAME
 
-STRUCTURE:
+```
 /home/prof/MESSLKERAS/CHiME3-Exps
 |
 /MODELNAME-exp/ (unique, descriptive named)
@@ -22,7 +22,7 @@ STRUCTURE:
 |--- MODELNAME.description.txt (english)
 |--- /keras-masks (masks computed from just the MODELNAME Keras model)
     |
-    |--- masks (for all 6 channels for all dataset)  (follows structure of original corpus)
+    |--- masks (for all channels for all dataset)  (follows structure of original corpus)
 |
 |--- /combination methods dir/ (descriptive name. for ex: AVE-PRE-COMBO)
     |
@@ -32,7 +32,6 @@ STRUCTURE:
         |--- /model+messl masks/ (follows structure of original corpus)
         |
         |--- /model+messl enhanced wav dir/ (follows structure of original corpus)
-                (output of beamforming using our model+messl masks)
         |
         |--- /PESQ scores dir/ (follows structure of enhanced file dir)
         |
@@ -41,6 +40,7 @@ STRUCTURE:
         |--- /OPS scores dir/ (follows structure of enhanced file dir)
         |
         |--- /WER scores and transcripts dir/ (follows structure of enhanced file dir)
+```
 
 ## messlkeras library documentation
  List of functions to help in the use of Keras.  
