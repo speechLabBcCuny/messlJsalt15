@@ -15,5 +15,6 @@ def prep_list_for_keras(data_dir, reg_exp, verbose=False):
                     for file in sorted(files) \
                     if file.endswith('.mat') and bool(re.search(reg_exp,path)) ]
     
-    if verbose: print("file_list in paths matching {} prepared. Make sure to check filenames for input<->target match!".format(reg_exp))
+    if verbose: print("file_list ending in .mat in paths matching {} prepared. Make sure to check filenames for input<->target match!".format(reg_exp))
+    if verbose: print("length of file_list: {}".format(len(res_list)))
     return res_list

@@ -41,15 +41,16 @@ def prep_data_for_keras(file_list, input_shape=(-1, 50, 513), start=0, chan2keep
 
         if verbose: print("working on", filename)
 
-        # check amount of time used, and exit if time exceeds limit (will cause problem with other loaded data, no point continuing)
+        # check amount of time used, and exit if time exceeds limit (will cause problem with other loaded data, no point returning anything)
         if time_used >= time_limit:
             raise Exception("Time limit exceeded!, Exiting")
 
         # load next .mat file, if fail exit (this should not happen if the file_list is well built)
         try:
-            loaded_data = sio.loadmat(filename)['data'][0][0][0]
+            loaded_data = sio.loadmat(filename,verify_compressed_data_integrity=False)['data'][0][0][0]
         except:
-            raise Exception("Error Loading file! Exiting.")
+            # faile to load file
+            raise Exception("Error Loading file {}! Exiting.".format(filename))
 
         # extract useful variables
         try:
@@ -89,18 +90,12 @@ def prep_data_for_keras(file_list, input_shape=(-1, 50, 513), start=0, chan2keep
         # swap axes feat<->chan
         loaded_data = loaded_data.swapaxes(0,2)
 
-        # pad end of data to fit ('wrap' = add frames from the beginning)
-        # this sort of works for input_length > frame_num but leads to some repetitions
-        if frame_num >= input_length:
-            amount_to_pad = frame_num % input_length
-        else:
-            amount_to_pad = input_length % frame_num
-
-        loaded_data = np.pad(loaded_data, ((0,0),(0,amount_to_pad),(0,0)), 'wrap')
-
         # reshape to keras desired shape
-        # -1 allows for automatic dimension calculation
-        loaded_data = loaded_data.reshape(-1, input_length, features)
+        loaded_data_chans, loaded_data_length, _ = loaded_data.shape
+
+        num_sample = max(6, int(np.ceil(loaded_data_chans*loaded_data_length/input_length)))
+
+        loaded_data = np.resize(loaded_data,(num_sample, input_length, features))
 
 
         # add to arrays to return
@@ -112,9 +107,18 @@ def prep_data_for_keras(file_list, input_shape=(-1, 50, 513), start=0, chan2keep
             else:
                 keras_data = np.zeros(input_shape, dtype=loaded_data.dtype)
 
+
         # insert in proper position
-        keras_data[pos_to_insert:pos_to_insert+len(loaded_data)] = loaded_data
-        pos_to_insert += len(loaded_data)
+        if (pos_to_insert + len(loaded_data)) < len(keras_data):
+            # there is still room
+            keras_data[pos_to_insert:pos_to_insert+len(loaded_data)] = loaded_data
+            pos_to_insert += len(loaded_data)
+        else:
+            # we are out of room
+            room_left = len(keras_data[pos_to_insert:])
+            keras_data[pos_to_insert:] = loaded_data[:room_left]
+            pos_to_insert += len(loaded_data[:room_left])
+
 
         # increment the number of processed files
         num_proc_files += 1
