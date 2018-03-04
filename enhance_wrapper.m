@@ -107,10 +107,22 @@ for f = part(1):part(2):length(inFiles)
     nsampl = size(x,1);
 
     % Determine if any mics have failed
-    xpow=sum(x.^2,1);
-    xpow=10*log10(xpow/max(xpow));
-    fail=(xpow<=pow_thresh);
-
+    %the shape of x is lengthX6
+    dim = floor(nsampl/10);
+    for i = 1:10
+        temp = x(dim*(i-1)+1:dim*(i),:);
+        xpow = sum(temp.^2,1);
+        xpow=10*log10(xpow/max(xpow));
+        fail(i,:)=(xpow<=pow_thresh);
+    end;
+    fail = any(fail);
+    % xpow=sum(x.^2,1);
+    % xpow=10*log10(xpow/max(xpow));
+    % fail=(xpow<=pow_thresh);
+    % if any(fail)
+    %     fprintf('%s',inFile)
+    % end
+    
     % STFT
     X = stft_multi(x.',wlen);
     [nbin,nfram,~] = size(X);
@@ -140,5 +152,5 @@ for f = part(1):part(2):length(inFiles)
     ensureDirExists(outWavFile);
     audiowrite(outWavFile, y, fs);
     ensureDirExists(outMaskFile);
-    save(outMaskFile, 'data', 'fs', 'nbin', 'nfram', 'nsampl', 'fail', 'normalizeOutput');
+    save(outMaskFile, 'data', 'fs', 'nbin', 'nfram', 'nsampl', 'fail', 'normalizeOutput','-v6');
 end
