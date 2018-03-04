@@ -15,15 +15,15 @@ import sys
 import time
 import random
 
-from keras.models import Sequential
+from keras.models import Sequential, load_model
 from keras.layers import LSTM, Dense, Lambda, Merge
 from keras.layers.normalization import BatchNormalization
 from keras.layers.wrappers import TimeDistributed, Bidirectional
 from keras.callbacks import EarlyStopping, ModelCheckpoint
-from keras.backend.tensorflow_backend import set_session
 from keras import backend as K
 
 import tensorflow as tf
+from keras.backend.tensorflow_backend import set_session
 config = tf.ConfigProto()
 config.gpu_options.allow_growth=True
 config.allow_soft_placement=True
@@ -36,7 +36,9 @@ import scipy as sp
 
 import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"   
-os.environ["CUDA_VISIBLE_DEVICES"]="1" # desired GPU
+GPU = "1"
+print ("Running script on GPU", GPU)
+os.environ["CUDA_VISIBLE_DEVICES"]=GPU # desired GPU
 
 import messlkeras as mk
 
@@ -49,16 +51,21 @@ script_name = sys.argv[0]
 save_dir = sys.argv[1] #string, directory
 # should we train on ideal amplitude or phase sensitive masks, on the cleaned psectrogram (phase sensitive or not)
 exp_type = sys.argv[2] # string, shoud be either 'iaf' or 'psf' or 'msa' or 'psa'
-
+# folder containing the pre-trained models, may be empty
+try :
+    cont_folder = sys.argv[3]
+except:
+    cont_folder = ''
 
 print("Running experiment from script: ", script_name)
-start_time = time.strftime('%Y-%m-%d %T')
+start_time = time.strftime('%Y-%m-%d_%T')
 print("Start Time: ", start_time)
 
 print("Config: ")
 print("save dir: ", save_dir)
 print("exp type: ", exp_type)
-
+if cont_folder != '' :
+    print("pre-trained models location:", cont_folder)
 
 # create new experiment folder using timestamp
 print("Creating new folder for this experiment in:", save_dir)
@@ -68,19 +75,21 @@ os.makedirs(newexp_folder_path)
 
 # lists of files to work on
 data_dir = "/home/data/CHiME3/data/audio/16kHz/local/"
-messl_masks_dir = "/scratch/mim/chime3/messlMcMvdrMrf.2Hard5Lbp4Slate/data/"
+# messl_masks_dir = "/scratch/mim/chime3/messlMcMvdrMrf.2Hard5Lbp4Slate/data/" # hard masks
+messl_masks_dir = "/scratch/near/CHiME3/MESSL_softmasks/data/" #soft masks
+
 
 # training data
-input_spect_list_tr = mk.prep_list_for_keras(data_dir, "messl-spects-noisy.*tr05.*real", verbose=False)
-input_masks_list_tr = mk.prep_list_for_keras(messl_masks_dir, ".*tr05.*real", verbose=False)
-
+tr_reg_exp = ".*tr05_.*_((simu)|(real)).*"
+input_spect_list_tr = mk.prep_list_for_keras(data_dir, "messl-spects-noisy"+tr_reg_exp, verbose=False)
+input_masks_list_tr = mk.prep_list_for_keras(messl_masks_dir, tr_reg_exp, verbose=False)
 
 if exp_type == 'iaf':
-    target_list_tr = mk.prep_list_for_keras(data_dir, "mask.*ideal_amplitude.*tr05.*real", verbose=False)
+    target_list_tr = mk.prep_list_for_keras(data_dir, "mask.*ideal_amplitude"+tr_reg_exp, verbose=False)
 elif exp_type == 'psf':
-    target_list_tr = mk.prep_list_for_keras(data_dir, "mask.*phase_sensitive.*tr05.*real", verbose=False)
+    target_list_tr = mk.prep_list_for_keras(data_dir, "mask.*phase_sensitive"+tr_reg_exp, verbose=False)
 elif exp_type in ['msa', 'psa']:
-    target_list_tr = mk.prep_list_for_keras(data_dir, "messl-spects-mvdr-cleaned.*tr05.*real", verbose=False)
+    target_list_tr = mk.prep_list_for_keras(data_dir, "messl-spects-mvdr-cleaned"+tr_reg_exp, verbose=False)
 
 # check that they match:
 if ([x.split('/')[-1] for x in input_spect_list_tr] == [x.split('/')[-1] for x in target_list_tr]) \
@@ -90,37 +99,37 @@ else:
     raise Exception("Training Filenames do not match! Exiting")
 
 # validation data (from dt05)
-# training data
-input_spect_list_dt = mk.prep_list_for_keras(data_dir, "messl-spects-noisy.*dt05.*real", verbose=False)
-input_masks_list_dt = mk.prep_list_for_keras(messl_masks_dir, ".*dt05.*real", verbose=False)
+dt_reg_exp = ".*dt05_.*_((simu)|(real)).*"
+input_spect_list_dt = mk.prep_list_for_keras(data_dir, "messl-spects-noisy"+dt_reg_exp, verbose=False)
+input_masks_list_dt = mk.prep_list_for_keras(messl_masks_dir, dt_reg_exp, verbose=False)
 
 if exp_type == 'iaf':
-    target_list_dt = mk.prep_list_for_keras(data_dir, "mask.*ideal_amplitude.*dt05.*real", verbose=False)
+    target_list_dt = mk.prep_list_for_keras(data_dir, "mask.*ideal_amplitude"+dt_reg_exp, verbose=False)
 elif exp_type == 'psf':
-    target_list_dt = mk.prep_list_for_keras(data_dir, "mask.*phase_sensitive.*dt05.*real", verbose=False)
+    target_list_dt = mk.prep_list_for_keras(data_dir, "mask.*phase_sensitivel"+dt_reg_exp, verbose=False)
 elif exp_type in ['msa', 'psa']:
-    target_list_dt = mk.prep_list_for_keras(data_dir, "messl-spects-mvdr-cleaned.*dt05.*real", verbose=False)
+    target_list_dt = mk.prep_list_for_keras(data_dir, "messl-spects-mvdr-cleaned"+dt_reg_exp, verbose=False)
 
 # check that they match:
 if ([x.split('/')[-1] for x in input_spect_list_dt] == [x.split('/')[-1] for x in target_list_dt]) \
     and ([x.split('/')[-1] for x in input_spect_list_dt] == [x.split('/')[-1] for x in input_masks_list_dt]):
     print("Number of validation files:", len(input_spect_list_dt))
 else:
-    raise Exception("Training Filenames do not match! Exiting")
+    raise Exception("Validation Filenames do not match! Exiting")
 
 
-# make smaller for debugging
-size = 1
-input_spect_list_tr = input_spect_list_tr[0:size]
-input_masks_list_tr = input_masks_list_tr[0:size]
-target_list_tr = target_list_tr[0:size]
+# # make smaller for debugging
+# size = 1
+# input_spect_list_tr = input_spect_list_tr[0:size]
+# input_masks_list_tr = input_masks_list_tr[0:size]
+# target_list_tr = target_list_tr[0:size]
 
-input_spect_list_dt = input_spect_list_dt[0:size]
-input_masks_list_dt = input_masks_list_dt[0:size]
-target_list_dt = target_list_dt[0:size]
+# input_spect_list_dt = input_spect_list_dt[0:size]
+# input_masks_list_dt = input_masks_list_dt[0:size]
+# target_list_dt = target_list_dt[0:size]
 
 ### prepare data
-sample_num, input_length, feat_num = (-1,20,513)
+sample_num, input_length, feat_num = (-1,150,513)
 input_shape = (sample_num, input_length, feat_num)
 start = 0
 chan2keep = 0
@@ -156,19 +165,25 @@ if exp_type == 'psa':
     theta_y = np.angle(keras_inputs_spect_tr)
     theta_s = np.angle(keras_targets_tr)
     theta = theta_y - theta_s
-    keras_targets_tr = abs(keras_targets_tr)*np.cos(theta)
+    keras_targets_tr[:] = abs(keras_targets_tr)*np.cos(theta)
 
     theta_y = np.angle(keras_inputs_spect_dt)
     theta_s = np.angle(keras_targets_dt)
     theta = theta_y - theta_s
-    keras_targets_dt = abs(keras_targets_dt)*np.cos(theta)
+    keras_targets_dt[:] = abs(keras_targets_dt)*np.cos(theta)
 
 # apply logit to messls masks (input only)
-keras_inputs_masks_tr =  np.nan_to_num(sp.special.logit(keras_inputs_masks_tr))
-keras_inputs_masks_dt =  np.nan_to_num(sp.special.logit(keras_inputs_masks_dt))
+keras_inputs_masks_tr[:] =  np.nan_to_num(sp.special.logit(keras_inputs_masks_tr))
+keras_inputs_masks_dt[:] =  np.nan_to_num(sp.special.logit(keras_inputs_masks_dt))
 
+# make sure spects are abs value
+keras_inputs_spect_tr[:] = abs(keras_inputs_spect_tr)
+keras_inputs_spect_dt[:] = abs(keras_inputs_spect_dt)
+if exp_type == 'msa': #'psa' already done above
+    keras_targets_tr[:] = abs(keras_targets_tr)
+    keras_targets_dt[:] = abs(keras_targets_dt)
 
-# make inputs proper size if needed xxx
+# make inputs proper size if needed 
 if exp_type in ['msa', 'psa']:
     keras_inputs_tr = [keras_inputs_spect_tr,keras_inputs_spect_tr,keras_inputs_masks_tr]
     keras_inputs_dt = [keras_inputs_spect_dt,keras_inputs_spect_dt,keras_inputs_masks_dt]
@@ -184,10 +199,10 @@ def new_random_combo2mask_model():
     output_dim = 513
 
     batch_norm_mode = random.choice([0,2])
-    numlayers = random.choice([1,2])
+    numlayers = random.choice([1,2,3,4])
     layersizes = []
     for layer in range(numlayers):
-        layersizes.append( random.choice([256,512,1024,2048]) )
+        layersizes.append( random.choice([256,512,1024]) )
     bid_merge_mode = random.choice(['sum', 'mul', 'concat', 'ave'])
     activation = random.choice(['sigmoid', 'hard_sigmoid'])
 #     optimizer = random.choice(['SGD', 'RMSprop', 'Adam', 'Adamax', 'Nadam'])
@@ -200,7 +215,7 @@ def new_random_combo2mask_model():
     # spect sequential model
     model_nspect = Sequential()
     # conversion to dB  #
-    model_nspect.add(TimeDistributed(Lambda(lambda x: K.log(K.abs(x))), input_shape=(None,feat_num))) 
+    model_nspect.add(TimeDistributed(Lambda(lambda x: K.log(x)), input_shape=(None,feat_num))) 
     # normalize per feature per batch
     model_nspect.add(BatchNormalization(mode=batch_norm_mode, axis=2, input_shape=(None,513)))
 
@@ -225,47 +240,105 @@ def new_random_combo2mask_model():
 
     return [config, model_combo2mask]
 
+# Run experiments
+if cont_folder == '':
 
-# Run trials
-for trial_num in range(100)[1:]:
-    print("New Trial number ", trial_num)
+    # Run trials
+    for trial_num in range(100)[1:]:
+        print("New Trial number ", trial_num)
 
-    # callbacks
-    early_stopper = EarlyStopping(monitor='val_loss', min_delta=0.001, patience=10, verbose=0, mode='auto')
+        # callbacks
+        early_stopper = EarlyStopping(monitor='val_loss', min_delta=0, patience=10, verbose=0, mode='auto')
 
-    # model_checker = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=True, save_weights_only=False, mode='auto', period=3)
-    
-    callbacks = [early_stopper]
-
-    config, model_combo2mask = new_random_combo2mask_model()
-
-    if exp_type in ['iaf', 'psf']:
-        model_to_train = model_combo2mask
-    elif exp_type in ['msa', 'psa']:
-        # spect sequential model 2
-        model_nspect2 = Sequential()
-        # conversion to dB  #
-        model_nspect2.add(TimeDistributed(Lambda(lambda x: K.abs(x)), input_shape=(None,feat_num))) 
+        # model_checker = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=True, save_weights_only=False, mode='auto', period=3)
         
-        model_to_train = Sequential()
-        model_to_train.add(Merge([model_nspect2, model_combo2mask], mode='mul'))
-   
-        # for a mean squared error regression problem
-        model_to_train.compile(optimizer='RMSprop', loss='mse')
+        callbacks = [early_stopper]
+
+        config, model_combo2mask = new_random_combo2mask_model()
+
+        # define the model to train
+        if exp_type in ['iaf', 'psf']:
+            model_to_train = model_combo2mask
+        elif exp_type in ['msa', 'psa']:
+            # spect sequential model 2
+            model_nspect2 = Sequential()
+            # conversion to dB  #
+            model_nspect2.add(TimeDistributed(Lambda(lambda x: x), input_shape=(None,feat_num))) 
+            
+            model_to_train = Sequential()
+            model_to_train.add(Merge([model_nspect2, model_combo2mask], mode='mul'))
+       
+            # use MSE as loss, same optimizer as nspect2mask
+            model_to_train.compile(optimizer=config[5], loss='mse')
 
 
-    hist = model_to_train.fit(keras_inputs_tr, keras_targets_tr, batch_size=64, nb_epoch=100, shuffle=True, verbose=2, validation_data=(keras_inputs_dt, keras_targets_dt), callbacks = callbacks)
+        hist = model_to_train.fit(keras_inputs_tr, keras_targets_tr, batch_size=64, nb_epoch=100, shuffle=True, verbose=2, validation_data=(keras_inputs_dt, keras_targets_dt), callbacks = callbacks)
 
-    print("Trial done.")
-    cur_time = time.strftime('%Y-%m-%d %T')
-    print(cur_time)
+        print("Trial done.")
+        cur_time = time.strftime('%Y-%m-%d_%T')
+        print(cur_time)
 
-    exp_folder_path = newexp_folder_path
-    val_loss = hist.history['val_loss'][-1]
-    filepath = exp_folder_path + "/" + exp_type + "_model_"+cur_time+"_vl:"+str(val_loss)+".hdf5"
-    print("Saving combo2mask model: ", filepath)
-    model_combo2mask.save(filepath)
+        exp_folder_path = newexp_folder_path
+        val_loss = hist.history['val_loss'][-1]
+        filepath = exp_folder_path + "/" + exp_type + "_model_"+cur_time+"_vl:"+str(val_loss)+".hdf5"
+        print("Saving combo2mask model: ", filepath)
+        model_combo2mask.save(filepath)
 
-    print("Saving config of model")
-    with open(exp_folder_path + "/" + cur_time + "_config.txt", "w") as config_file:
-        config_file.write(str(config))
+        print("Saving config of model")
+        with open(exp_folder_path + "/" + cur_time + "_config.txt", "w") as config_file:
+            config_file.write(str(config))
+
+else:
+
+    # improve pre-trained models
+    
+    for pre_trained_model_name in [f for f in os.listdir(cont_folder) if f.endswith('.hdf5')]:
+
+        print("Working on pre-trained model:",pre_trained_model_name)
+        #load model
+        loaded_model = load_model(cont_folder+"/"+pre_trained_model_name)
+        # load config
+        config_file = open(cont_folder+"/"+pre_trained_model_name[10:29]+"_config.txt", 'r') 
+        config = config_file.read()
+        print("Config of pretrained model:", config) 
+
+        # callbacks
+        early_stopper = EarlyStopping(monitor='val_loss', min_delta=0, patience=10, verbose=0, mode='auto')
+
+        callbacks = [early_stopper]
+
+        # define the model to train
+        if exp_type in ['iaf', 'psf']:
+            model_to_train = loaded_model
+        elif exp_type in ['msa', 'psa']:
+            # spect sequential model 2
+            model_nspect2 = Sequential()
+            # conversion to dB  #
+            model_nspect2.add(TimeDistributed(Lambda(lambda x: x), input_shape=(None,feat_num))) 
+            
+            model_to_train = Sequential()
+            model_to_train.add(Merge([model_nspect2, loaded_model], mode='mul'))
+       
+            # use MSE as loss, same optimizer as nspect2mask
+            # optimizer = ### need to be fixed
+            model_to_train.compile(optimizer='RMSprop', loss='mse')
+
+
+        hist = model_to_train.fit(keras_inputs_tr, keras_targets_tr, batch_size=64, nb_epoch=100, shuffle=True, verbose=2, validation_data=(keras_inputs_dt, keras_targets_dt), callbacks = callbacks)
+
+        print("Trial done.")
+        cur_time = time.strftime('%Y-%m-%d_%T')
+        print(cur_time)
+
+        exp_folder_path = newexp_folder_path
+        val_loss = hist.history['val_loss'][-1]
+        filepath = exp_folder_path + "/" + exp_type + "_model_"+cur_time+"_vl:"+str(val_loss)+".hdf5"
+        print("Saving nspect2mask model:", filepath)
+        loaded_model.save(filepath)
+
+        print("Saving config of model")
+        with open(exp_folder_path + "/" + cur_time + "_config.txt", "w") as config_file:
+            config_file.write(str(config)) 
+
+# EOF
+print("End of  script: ", script_name)

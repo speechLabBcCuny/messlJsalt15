@@ -1,4 +1,50 @@
-Collection of functions to help in the use of Keras.  
+This folder contains the work of Felix Grezes and Zhaoheng Ni on combining MESSL with Keras neural networks.  
+
+# Overview
+The code written aims to:
+ - train a neural network model to produce speech/noise masks  
+ TODO: add an example picture here  
+
+ - create enhanced audio files using the model+masks in combination with MESSL  
+
+ - extract PESQ, SRD, OPS, WER scores on the enhanced audio
+
+## experiment file structure
+Guide: if you trained a model named MODELNAME
+
+```
+/home/prof/MESSLKERAS/CHiME3-Exps
+|
+/MODELNAME-exp/ (unique, descriptive named)
+                (convention: $DATE+TIME_)
+|
+|--- MODELNAME.weights (keras file) (name is timestamp)
+|--- MODELNAME.architecture (keras file)
+|--- MODELNAME.description.txt (english)
+|--- /keras-masks (masks computed from just the MODELNAME Keras model, if applicable)
+    |
+    |--- masks (for all channels for all dataset)  (follows structure of original corpus)
+|
+|--- /combination methods dir/ (descriptive name. for ex: AVE-PRE-COMBO)
+    |
+    |--- combination_description.txt (english)
+    |--- /results on corpus dir/ (CHIME3 or AMI or other)
+        |
+        |--- /model+messl masks/ (follows structure of original corpus)
+        |
+        |--- /model+messl enhanced wav dir/ (follows structure of original corpus)
+        |
+        |--- /PESQ scores dir/ (follows structure of enhanced file dir)
+        |
+        |--- /SDR scores dir/ (follows structure of enhanced file dir)
+        |
+        |--- /OPS scores dir/ (follows structure of enhanced file dir)
+        |
+        |--- /WER scores and transcripts dir/ (follows structure of enhanced file dir)
+```
+
+## messlkeras library documentation
+ List of functions to help in the use of Keras.  
 
 Recommended usage:  
 ```python
@@ -6,6 +52,7 @@ import messlkeras as mk
 ```  
 Currently does not support `from messlkeras import *` .  
 
+### list of messl keras functions
 The following functions will be available in the module's namespace, ex: `mk.prep_data_for_keras(...)`
 
 ```python
@@ -15,7 +62,6 @@ prep_list_for_keras(data_dir, reg_exp, verbose=False)
     # reg_exp is the regular expression that identifies the directories containing the data to use:
     # eg: for noisy spectrogram dev set use "messl-spects-noisy.*dt" 
     # so only .mat in directories with that pattern will beadded to the list
-
 	# returns a list
     
 
@@ -27,7 +73,27 @@ prep_data_for_keras(file_list, input_shape=(-1, 50, 513), start=0, chan2keep='na
     # start=n allows the user to start later in the lists
     # time_limit puts on cap on how long the process should take, in seconds. default is 3 minutes
     # chan2keep: in cases where the data is 2 channels, needs to specify which to keep. Should have value 0 or 1. Not required in other cases.
-
     # returns a numpy.ndarray of shape input_shape
+
+def prep_exp_lists(exp_type):
+    # given an experiment type (iaf, psf, msa, psa), return the input and target lists for keras
+    # as : return tr_lists, dt_lists, et_lists 
+    # with:
+    # tr_lists = [input_spect_list_tr, input_mask_list_tr, target_list_tr]
+    # dt_lists = [input_spect_list_dt, input_mask_list_dt, target_list_dt]
+    # et_lists = [input_spect_list_et, input_mask_list_et, target_list_et]
+
+
+def new_combo2mask_model(layer_sizes=[128,128], bid_merge_mode='sum', out_activation='relu', drop_rate=0.5):
+    # returns an uncompiled keras 2.0 model built using the given config (also returns the config)
+    # input: a list of configurations parameters
+
+
+def train_keras_model(model, tr_inputs, tr_targets, val_inputs, val_targets, save_dir,
+                        optimizer='nadam', loss='binary_crossentropy', batch_size=64):
+    ### trains a single keras model
+    # inputs: experiment configuration
+    # output: None
+    # side effects: saves the model weights, architecture and training history in save_dir
 
 ```
