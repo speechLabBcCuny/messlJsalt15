@@ -1,17 +1,18 @@
 
 # imports
 from keras.models import Model
-from keras.layers import Input, LSTM, Dense, Lambda, concatenate, Dropout
+from keras.layers import Input, LSTM, Dense, Lambda, concatenate, multiply, Dropout, Bidirectional
 from keras.layers.normalization import BatchNormalization
-from keras.layers.wrappers import TimeDistributed #, Bidirectional
+from keras.layers.wrappers import TimeDistributed , Bidirectional
 from keras import regularizers
 from keras import backend as K
 
 
 
 def new_combo2mask_model(   input_length, 
+                            exp_type, 
                             layer_sizes=[128,128],
-                            bid_merge_mode='sum',
+                            bid_merge_mode='ave',
                             out_activation='relu',
                             drop_rate=0.5):
 
@@ -22,10 +23,11 @@ def new_combo2mask_model(   input_length,
     feat_num = 513
     output_dim = 513
     
-    config = {'layer_sizes':layer_sizes,
-              'bid_merge_mode':bid_merge_mode,
-              'out_activation':out_activation,
-              'drop_rate': drop_rate}
+    config = {'input_length':input_length,
+                'layer_sizes':layer_sizes,
+                'bid_merge_mode':bid_merge_mode,
+                'out_activation':out_activation,
+                'drop_rate': drop_rate}
 
     # many more to be added
     # LSTM parameters
@@ -34,28 +36,28 @@ def new_combo2mask_model(   input_length,
     # input 1: a noisy spectrogram of fixed length
     nspect_inputs = Input(shape=(input_length, feat_num))
 
-    # convert to dB
-    nspect_db = Lambda(lambda x: K.log(x))(nspect_inputs)
-
     # input 2: MESSL mask
     mmask_inputs = Input(shape=(input_length, feat_num))
     
     # merge the two inputs
-    merged_inputs = concatenate([nspect_db, mmask_inputs])
+    merged_inputs = concatenate([nspect_inputs, mmask_inputs])
 
     # LSTM layer(s)
-    x = LSTM(units=layer_sizes[0], return_sequences=True)(merged_inputs)
+    x = Bidirectional(LSTM(units=layer_sizes[0], return_sequences=True), merge_mode=bid_merge_mode)(merged_inputs)
     for size in layer_sizes[1:] :
-        x = LSTM(units=size, return_sequences=True)(merged_inputs)
+        x = Bidirectional(LSTM(units=size, return_sequences=True), merge_mode=bid_merge_mode)(x)
 
     # drop out 
     x = Dropout(rate=drop_rate)(x)
 
     # output: ie the predicted mask
-    predictions = Dense(513, activation=out_activation, use_bias = True, kernel_regularizer = regularizers.l2(0.01))(x)
+    mask_preds = Dense(513, activation=out_activation, use_bias=True, kernel_regularizer=regularizers.l2(0.01),  name='mask_preds')(x)
+#     mask_preds = Dense(513, activation=out_activation, use_bias = True, name='mask_preds')(x)
 
-    # if exp_type in ['psa', 'msa']:
-    #     pass
+    if exp_type in ['psa', 'msa']:
+        predictions = multiply([mask_preds, nspect_inputs])
+    elif exp_type in ['iaf', 'psf']:
+        predictions = mask_preds
 
     # the final model
     model = Model(inputs=[nspect_inputs,mmask_inputs], outputs=predictions)

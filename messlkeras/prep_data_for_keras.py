@@ -7,9 +7,10 @@ import os
 import warnings
 import scipy.io as sio
 import time
+import scipy as sp
 
 
-def prep_data_for_keras(file_list, input_shape=(-1, 50, 513), start=0, chan2keep='nan', time_limit=180, verbose=False):
+def prep_data_for_keras(file_list, data_type, input_shape=(-1, 150, 513), start=0, time_limit=180, verbose=False):
     ### prepares the data for Keras, using CHIME3 data only!
     # file_list details with .mat files to load (created by prep_list_for_keras)
     # input_shape will define the shape of the data: (sample_num, input_length, features) (must all be positive)
@@ -36,6 +37,14 @@ def prep_data_for_keras(file_list, input_shape=(-1, 50, 513), start=0, chan2keep
 
     start_time = time.clock()
     time_used = 0
+
+    # for cases with 2 channels, keep the right one
+    if data_type=='target_spect':
+        # data is a MVDR spectrogram
+        chan2keep = 1
+    else:
+        chan2keep = 0
+
 
     for filename in file_list[start:]:
 
@@ -69,11 +78,8 @@ def prep_data_for_keras(file_list, input_shape=(-1, 50, 513), start=0, chan2keep
         elif nb_channels == 2:
             # spectrograms from stereo files, currently mvdr-beamformfiles. keep chan 1 (ie the second channel)
             # OR masks from messls. keep chan 0
-            # replicate 6 times
-            if chan2keep not in [0,1]:
-                raise Exception("2 channels found in .mat file. Please Specify chan2keep = 0 or 1. Exiting")
-            else:
-                loaded_data = loaded_data[:,:,chan2keep::2] #start at index one, progress by steps of size 2
+            # then replicate 6 times
+            loaded_data = loaded_data[:,:,chan2keep::2] #start at index one, progress by steps of size 2
             # duplicate for each 6 channels of chime3
             loaded_data = np.tile(loaded_data, (1, 1, 6))
             nb_channels = 6
@@ -93,31 +99,81 @@ def prep_data_for_keras(file_list, input_shape=(-1, 50, 513), start=0, chan2keep
         # reshape to keras desired shape
         loaded_data_chans, loaded_data_length, _ = loaded_data.shape
 
-        num_sample = max(6, int(np.ceil(loaded_data_chans*loaded_data_length/input_length)))
 
-        loaded_data = np.resize(loaded_data,(num_sample, input_length, features))
+        ### treat differently for each data case
+        if data_type=='input_spect':
+            # input spect
+            # convert complex values to decibel
+            loaded_data =  np.nan_to_num(np.log10(abs(loaded_data)))
+            # normalize
+            means = np.swapaxes(np.tile(loaded_data.mean(axis=1),(loaded_data_length,1,1)),0,1)
+            stds = np.swapaxes(np.tile(loaded_data.std(axis=1),(loaded_data_length,1,1)),0,1)
+            loaded_data = (loaded_data- means) / stds
 
+        elif data_type=='input_mask':
+            # input masks
+            # apply logit
+            loaded_data =  np.nan_to_num(sp.special.logit(loaded_data))
+
+        elif data_type=='target_mask':
+            # target mask
+            pass
+
+        elif data_type=='target_spect':
+            # target spect
+            # convert complex values to decibel
+            loaded_data =  np.nan_to_num(np.log10(abs(loaded_data)))
+
+        elif data_type=='theta':
+            # data for which we need the np.angle
+            loaded_data = np.angle(loaded_data)
+
+        elif data_type=='abs':
+            # complex data for which we need only the abs val
+            loaded_data = abs(loaded_data)
+
+        else:
+            raise Exception("Unspecified data type! Exiting.")
 
         # add to arrays to return
         if keras_data is None:
-            # pre-allocate memory of correct type, only once
-            if sample_num < 0:
-                # fill with zeros, maximum size (real+simu tr05)
-                keras_data = np.zeros((1+2066520/input_length, input_length, features), dtype=loaded_data.dtype)
-            else:
-                keras_data = np.zeros(input_shape, dtype=loaded_data.dtype)
+            # pre-allocate memory of correct type & size, only once
+            # fill with zeros, maximum size (real+simu tr05) ~16gb
+            keras_data = np.zeros((12213449, features), dtype='float32')
+            if verbose: print("Keras data created with size {}.".format(keras_data.nbytes))
+            
+        #     OLD
+        # if keras_data is None:
+        #     # pre-allocate memory of correct type & size, only once
+        #     if sample_num < 0:
+        #         # fill with zeros, maximum size (real+simu tr05)
+        #         keras_data = np.zeros((1+2066520, features), dtype='float32')
+        #         print("Keras data created with size {}.".format(keras_data.nbytes))
+        #     else:
+        #         keras_data = np.zeros((num_sample*), dtype='float32')
+        #         print("Keras data created with size {}.".format(keras_data.nbytes))
 
-
+        # flatten samples
+        loaded_data_chans, loaded_data_length, _ = loaded_data.shape
+        loaded_data = np.reshape(loaded_data, (loaded_data_chans*loaded_data_length, 513))
+        
+        
         # insert in proper position
-        if (pos_to_insert + len(loaded_data)) < len(keras_data):
-            # there is still room
-            keras_data[pos_to_insert:pos_to_insert+len(loaded_data)] = loaded_data
-            pos_to_insert += len(loaded_data)
-        else:
-            # we are out of room
-            room_left = len(keras_data[pos_to_insert:])
-            keras_data[pos_to_insert:] = loaded_data[:room_left]
-            pos_to_insert += len(loaded_data[:room_left])
+        # if not enough, crash (desired behavior)
+        keras_data[pos_to_insert:pos_to_insert+len(loaded_data)] = loaded_data
+        pos_to_insert += len(loaded_data)
+
+
+        # # insert in proper position
+        # if (pos_to_insert + len(loaded_data)) < len(keras_data):
+        #     # there is still room
+        #     keras_data[pos_to_insert:pos_to_insert+len(loaded_data)] = loaded_data
+        #     pos_to_insert += len(loaded_data)
+        # else:
+        #     # we are out of room
+        #     room_left = len(keras_data[pos_to_insert:])
+        #     keras_data[pos_to_insert:] = loaded_data[:room_left]
+        #     pos_to_insert += len(loaded_data[:room_left])
 
 
         # increment the number of processed files
@@ -127,15 +183,26 @@ def prep_data_for_keras(file_list, input_shape=(-1, 50, 513), start=0, chan2keep
         time_used = time.clock() - start_time
 
         # check if we are done
-        if sample_num>0 and len(keras_data) >= sample_num: break
+        if sample_num>0 and pos_to_insert>=sample_num*input_length: break
 
+    # done with files, ready to return
+    
+    # first, remove trailing zeros and make correct shape
+    if verbose: print("removing {} zeros".format(pos_to_insert%input_length) )
+    keras_data.resize((int(pos_to_insert/input_length), input_length, 513))
+    if verbose: print("Kera_data resized with size {}".format(keras_data.nbytes))
 
-    # first, remove trailing zeros
-    keras_data.resize((pos_to_insert,input_length,features))
-    # return requested number of samples
-    if sample_num>0 and len(keras_data) >= sample_num:
-        keras_data.resize((sample_num,input_length,features))
-    if len(keras_data) < sample_num:
+    # if no sample_num specified
+    if sample_num<0:
+        #nothing to do
+        pass
+    elif sample_num>0 and (len(keras_data) > sample_num):
+        # inserted slightly more than needed
+        if verbose: print("removing {} samples".format(len(keras_data)-sample_num) )
+        keras_data.resize((sample_num,input_length, 513))
+        if verbose: print("Kera_data resized with size {}".format(keras_data.nbytes)) 
+
+    elif len(keras_data) < sample_num:
         warnings.warn("All files loaded but too many samples asked, returning as is!")
 
     return (keras_data, num_proc_files)
